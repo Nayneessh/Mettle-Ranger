@@ -63,6 +63,13 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-video:$cameraxVersion")
 
+    // ProcessCameraProvider.getInstance() returns a Guava ListenableFuture.
+    // CameraX only pulls in the empty com.google.guava:listenablefuture
+    // stub transitively, which is enough to reference the type but not to
+    // call .addListener() on it — the real Android-flavoured Guava artifact
+    // has to be declared explicitly, per CameraX's own integration guide.
+    implementation("com.google.guava:guava:33.3.1-android")
+
     // LifecycleService: lets the foreground service itself be the
     // LifecycleOwner CameraX binds to, without depending on an Activity.
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
