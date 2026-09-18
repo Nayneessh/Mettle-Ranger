@@ -57,11 +57,12 @@
             android:foregroundServiceType="camera" />
 
         <!-- AdMob requires its App ID in the manifest itself — unlike ad unit
-             IDs, it cannot be supplied at Dart runtime via --dart-define, so
-             this is Google's own public TEST App ID (spec §3: test IDs
-             during development). Swap this literal for the real App ID
-             before a release build; see lib/config/app_config.dart for why
-             ad UNIT IDs don't need the same treatment. -->
+             IDs, it cannot be supplied at Dart runtime via a dart-define
+             build flag, so this is Google's own public TEST App ID (spec
+             §3: test IDs during development). Swap this literal for the
+             real App ID before a release build; see
+             lib/config/app_config.dart for why ad UNIT IDs don't need the
+             same treatment. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3940256099942544~3347511713" />
