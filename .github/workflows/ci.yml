@@ -109,22 +109,49 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
 
-      # Manual-dispatch only. Actions artifacts live behind Azure Blob
-      # Storage, unreachable from some restricted-egress environments;
-      # a Release asset is uploaded straight from this runner (which has
-      # full internet access) and served from GitHub's own domain, so it
-      # is fetchable from anywhere that can reach github.com. Overwrites a
-      # single rolling "debug-apk" tag rather than creating a new release
-      # per run.
+      # Manual-dispatch only, and a second, smaller build: --release enables
+      # R8 shrinking (no minification/tree-shaking happens in --debug) and
+      # --split-per-abi drops the other three architectures' native
+      # libraries, together cutting a ~180MB unstripped debug APK down
+      # toward something transferable. Still debug-keystore-signed (see the
+      # buildTypes.release block above) — not a Play-signed release, just a
+      # smaller sideloadable build for the overwhelming majority of real
+      # devices (arm64-v8a).
+      - name: Build a small arm64 release APK for direct download
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_BANNER_UNIT_ID: ${{ secrets.ADMOB_BANNER_UNIT_ID }}
+          REVENUECAT_PUBLIC_KEY: ${{ secrets.REVENUECAT_PUBLIC_KEY }}
+        run: |
+          DEFINES=()
+          for name in SUPABASE_URL SUPABASE_ANON_KEY ADMOB_APP_ID ADMOB_BANNER_UNIT_ID REVENUECAT_PUBLIC_KEY; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              DEFINES+=(--dart-define="$name=$value")
+            fi
+          done
+          flutter build apk --release --split-per-abi --target-platform android-arm64 "${DEFINES[@]}"
+          ls -la build/app/outputs/flutter-apk/
+
+      # Actions artifacts live behind Azure Blob Storage, unreachable from
+      # some restricted-egress environments; a Release asset is uploaded
+      # straight from this runner (which has full internet access) and
+      # served from GitHub's own domain, so it is fetchable from anywhere
+      # that can reach github.com. Overwrites a single rolling "debug-apk"
+      # tag rather than creating a new release per run.
       - name: Publish as a GitHub Release asset
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp build/app/outputs/flutter-apk/app-debug.apk mettle-ranger-debug.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk mettle-ranger-arm64.apk
+          ls -la mettle-ranger-arm64.apk
           gh release delete debug-apk --yes --cleanup-tag -R "${{ github.repository }}" || true
-          gh release create debug-apk mettle-ranger-debug.apk \
+          gh release create debug-apk mettle-ranger-arm64.apk \
             -R "${{ github.repository }}" \
-            --title "Mettle Ranger — debug build" \
-            --notes "Debug-signed APK built from ${{ github.sha }} (branch: ${{ github.ref_name }}). Not release-signed. See README.md for what is and isn't hardware-validated." \
+            --title "Mettle Ranger — arm64 build" \
+            --notes "arm64-v8a only, R8-shrunk, debug-keystore-signed (not a Play-signed release) build from ${{ github.sha }} (branch: ${{ github.ref_name }}). See README.md for what is and isn't hardware-validated." \
             --target "${{ github.sha }}"
