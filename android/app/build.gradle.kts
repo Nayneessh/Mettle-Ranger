@@ -13,6 +13,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // CameraX's video module needs core library desugaring for its use
+        // of java.time on API levels below 33.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -45,4 +48,23 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Core library desugaring, paired with isCoreLibraryDesugaringEnabled above.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // CameraX: the capture pipeline in ./src/main/kotlin/.../capture. Flutter's
+    // own camera plugins do not survive backgrounding or a locked screen
+    // (spec §7), so recording runs natively behind the platform channel.
+    val cameraxVersion = "1.4.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-video:$cameraxVersion")
+
+    // LifecycleService: lets the foreground service itself be the
+    // LifecycleOwner CameraX binds to, without depending on an Activity.
+    implementation("androidx.lifecycle:lifecycle-service:2.8.7")
+    implementation("androidx.core:core-ktx:1.15.0")
 }

@@ -5,7 +5,7 @@ import '../tables.dart';
 
 part 'recording_dao.g.dart';
 
-@DriftAccessor(tables: [Recordings, Sessions])
+@DriftAccessor(tables: [Recordings, Sessions, Segments])
 class RecordingDao extends DatabaseAccessor<MettleDatabase>
     with _$RecordingDaoMixin {
   RecordingDao(super.db);
@@ -13,6 +13,9 @@ class RecordingDao extends DatabaseAccessor<MettleDatabase>
   Future<RecordingRow?> forSession(int sessionId) => (select(
     recordings,
   )..where((r) => r.session.equals(sessionId))).getSingleOrNull();
+
+  Future<RecordingRow?> byId(int id) =>
+      (select(recordings)..where((r) => r.id.equals(id))).getSingleOrNull();
 
   Future<List<RecordingRow>> allRecordings() => (select(
     recordings,
@@ -33,6 +36,46 @@ class RecordingDao extends DatabaseAccessor<MettleDatabase>
     final sum = recordings.sizeBytes.sum();
     final row = await (selectOnly(recordings)..addColumns([sum])).getSingle();
     return row.read(sum) ?? 0;
+  }
+
+  /// The segment files that make up a recording, in playback order. What the
+  /// capture pipeline reported when the recording stopped — see
+  /// `platform/capture_controller.dart` and `domain/segment_resolver.dart`.
+  Future<List<SegmentRow>> segmentsForRecording(int recordingId) =>
+      (select(segments)
+            ..where((s) => s.recording.equals(recordingId))
+            ..orderBy([(s) => OrderingTerm.asc(s.segmentIndex)]))
+          .get();
+
+  /// Records the segment files a just-finished recording produced. Written
+  /// once, when capture stops — segments are never edited in place, only
+  /// replaced wholesale by [replaceSegments] when trim-on-save rewrites them.
+  Future<void> insertSegments(
+    int recordingId,
+    List<SegmentsCompanion> newSegments,
+  ) async {
+    await batch((b) {
+      b.insertAll(
+        segments,
+        newSegments.map((s) => s.copyWith(recording: Value(recordingId))),
+      );
+    });
+  }
+
+  /// Drops the old segment rows and inserts the ones trim-on-save produced
+  /// after rewriting the files on disk. Both steps run in one transaction so
+  /// a crash mid-trim can never leave the manifest pointing at files that no
+  /// longer exist.
+  Future<void> replaceSegments(
+    int recordingId,
+    List<SegmentsCompanion> newSegments,
+  ) async {
+    await transaction(() async {
+      await (delete(
+        segments,
+      )..where((s) => s.recording.equals(recordingId))).go();
+      await insertSegments(recordingId, newSegments);
+    });
   }
 
   /// Untrimmed recordings with no flagged chapters, older than [retentionDays].

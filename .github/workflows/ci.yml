@@ -73,8 +73,29 @@ jobs:
       # Debug signing only. The release keystore is generated locally, held in
       # a password manager, and injected as a secret at release time — it is
       # never committed and is not wired up until Sprint 16 (spec §6).
+      #
+      # Each --dart-define below is only added when its GitHub Actions
+      # secret is actually set — an unset secret must fall through to the
+      # safe default lib/config/app_config.dart defines in Dart (e.g.
+      # Google's public AdMob test IDs), not get overridden with an empty
+      # string. No secret is ever printed: GitHub redacts a value that
+      # matches a configured secret in any log output automatically.
       - name: Build debug APK
-        run: flutter build apk --debug
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_BANNER_UNIT_ID: ${{ secrets.ADMOB_BANNER_UNIT_ID }}
+          REVENUECAT_PUBLIC_KEY: ${{ secrets.REVENUECAT_PUBLIC_KEY }}
+        run: |
+          DEFINES=()
+          for name in SUPABASE_URL SUPABASE_ANON_KEY ADMOB_APP_ID ADMOB_BANNER_UNIT_ID REVENUECAT_PUBLIC_KEY; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              DEFINES+=(--dart-define="$name=$value")
+            fi
+          done
+          flutter build apk --debug "${DEFINES[@]}"
 
       - uses: actions/upload-artifact@v4
         with:

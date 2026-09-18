@@ -18,7 +18,7 @@ part 'database.g.dart';
 const int kBackupSchemaVersion = 1;
 
 @DriftDatabase(
-  tables: [Sessions, Rounds, Recordings, Chapters, Settings],
+  tables: [Sessions, Rounds, Recordings, Segments, Chapters, Settings],
   daos: [SessionDao, RecordingDao, ChapterDao, SettingsDao],
 )
 class MettleDatabase extends _$MettleDatabase {

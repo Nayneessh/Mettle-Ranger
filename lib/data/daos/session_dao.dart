@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../domain/load_calculator.dart' as calc;
 import '../database.dart';
 import '../tables.dart';
 
@@ -14,18 +15,14 @@ class SessionWithRounds {
 
   /// Working seconds across all logged rounds, rest excluded.
   int get matTimeFromRounds =>
-      rounds.fold(0, (total, round) => total + round.duration);
+      calc.matTimeFromDurations(rounds.map((r) => r.duration));
 
   /// Share of mat time spent sparring or rolling, 0–1. The Progress tab's
   /// sparring-to-drilling ratio. Returns 0 when nothing has been logged.
-  double get sparringRatio {
-    final total = matTimeFromRounds;
-    if (total == 0) return 0;
-    final live = rounds
-        .where((r) => r.mode == RoundMode.spar || r.mode == RoundMode.roll)
-        .fold(0, (sum, r) => sum + r.duration);
-    return live / total;
-  }
+  double get sparringRatio => calc.sparringRatio(
+    roundDurationsSeconds: rounds.map((r) => r.duration),
+    roundModes: rounds.map((r) => r.mode),
+  );
 }
 
 @DriftAccessor(tables: [Sessions, Rounds])
@@ -60,6 +57,13 @@ class SessionDao extends DatabaseAccessor<MettleDatabase>
             ..orderBy([(r) => OrderingTerm.asc(r.number)]))
           .get();
 
+  /// Every round across every session — the Progress tab's sparring-ratio
+  /// chart needs the whole log, not one session at a time. Dataset sizes
+  /// here are a personal training log (hundreds of rows, not millions), so
+  /// one unfiltered read is the right tool, not a reason to add a
+  /// purpose-built aggregate query.
+  Stream<List<RoundRow>> watchAllRounds() => select(rounds).watch();
+
   Future<SessionWithRounds?> sessionWithRounds(int id) async {
     final session = await sessionById(id);
     if (session == null) return null;
@@ -86,8 +90,10 @@ class SessionDao extends DatabaseAccessor<MettleDatabase>
     final session = await sessionById(sessionId);
     if (session == null) return;
     final sessionRounds = await roundsForSession(sessionId);
-    final matTime = sessionRounds.fold(0, (total, r) => total + r.duration);
-    final load = (session.sRpe ?? 0) * (matTime ~/ 60);
+    final matTime = calc.matTimeFromDurations(
+      sessionRounds.map((r) => r.duration),
+    );
+    final load = calc.loadScore(sRpe: session.sRpe, matTimeSeconds: matTime);
 
     await (update(sessions)..where((s) => s.id.equals(sessionId))).write(
       SessionsCompanion(matTime: Value(matTime), loadScore: Value(load)),

@@ -1,19 +1,8 @@
 import 'package:drift/drift.dart';
 
-/// Martial arts covered by the log. Deliberately closed — this is a
-/// martial-arts-only product (spec §11), not a general training app.
-enum Discipline { bjj, boxing, muayThai, mma, wrestling }
+import '../domain/enums.dart';
 
-/// What a round actually was. Drives the sparring-to-drilling ratio on the
-/// Progress tab, so the split between working and rolling has to be recorded
-/// per round rather than inferred per session.
-enum RoundMode { technique, drill, pads, bag, spar, roll, conditioning }
-
-/// Capture resolution. 720p30 is the default; 1080p is opt-in behind a size
-/// warning (spec §7).
-enum CaptureQuality { p720, p1080 }
-
-enum UnitSystem { metric, imperial }
+export '../domain/enums.dart';
 
 /// The only permitted primary key in [Settings].
 const int kSettingsRowId = 1;
@@ -146,6 +135,56 @@ class Recordings extends Table {
   @override
   List<String> get customConstraints => const [
     'CHECK (duration >= 0)',
+    'CHECK (size_bytes >= 0)',
+  ];
+}
+
+/// One physical segment file of a recording: 1:N from [Recordings].
+///
+/// RULE 3 (spec §4) made segmented writing non-negotiable; this table is
+/// where that decision earns its keep. [Chapters] offsets live on a single
+/// global timeline spanning the whole recording, but segments roll over on
+/// their own schedule (time-based, for crash resilience — see
+/// /lib/platform), so nothing else in the schema can answer "which file, and
+/// what offset inside it, does global millisecond X fall in?" without this.
+/// `domain/segment_resolver.dart` is the pure function that answers it.
+///
+/// Added directly to schema v1 rather than as a v1→v2 migration: this has
+/// never shipped, so there is no installed copy to migrate.
+@DataClassName('SegmentRow')
+class Segments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get recording =>
+      integer().references(Recordings, #id, onDelete: KeyAction.cascade)();
+
+  /// 0-based order within the recording.
+  IntColumn get segmentIndex => integer()();
+
+  /// File name only, relative to `Recordings.localPath` — never a full path,
+  /// so moving the app's data directory (an OS-level restore, for instance)
+  /// can't silently orphan every segment reference.
+  TextColumn get fileName => text()();
+
+  /// Where this segment begins on the recording's global timeline —
+  /// [Chapters.startOffset] and [Chapters.endOffset] are expressed in the
+  /// same units and the same origin.
+  IntColumn get startOffsetMs => integer()();
+
+  IntColumn get durationMs => integer()();
+
+  IntColumn get sizeBytes => integer()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {recording, segmentIndex},
+  ];
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK (segment_index >= 0)',
+    'CHECK (start_offset_ms >= 0)',
+    'CHECK (duration_ms >= 0)',
     'CHECK (size_bytes >= 0)',
   ];
 }

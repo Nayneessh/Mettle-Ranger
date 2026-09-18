@@ -1,4 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Auth/backup (Supabase), ads (AdMob) and IAP (RevenueCat) all need
+         the network — everything else in this app is offline-first and
+         needs none of it (spec §5: recording and logging work fully
+         signed-out). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Capture pipeline (spec §7). No storage/gallery permission is
+         requested anywhere: recordings live in the app-private external
+         files directory, which needs none on API 29+ scoped storage. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/>
+    <!-- Runtime-requested on API 33+; a no-op manifest declaration below it. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <uses-feature android:name="android.hardware.camera" android:required="true"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.microphone" android:required="true"/>
+
     <application
         android:label="Mettle Ranger"
         android:name="${applicationName}"
@@ -25,6 +46,26 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- The capture pipeline itself. foregroundServiceType="camera" is
+             what makes recording survive backgrounding and a locked screen
+             (spec §7) — the single most important line in this file, and the
+             one the Sprint 1.5 spike exists to prove actually holds up. -->
+        <service
+            android:name=".capture.CaptureForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
+
+        <!-- AdMob requires its App ID in the manifest itself — unlike ad unit
+             IDs, it cannot be supplied at Dart runtime via --dart-define, so
+             this is Google's own public TEST App ID (spec §3: test IDs
+             during development). Swap this literal for the real App ID
+             before a release build; see lib/config/app_config.dart for why
+             ad UNIT IDs don't need the same treatment. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

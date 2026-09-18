@@ -1,0 +1,428 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mettle_ranger/domain/chapter_stamper.dart';
+import 'package:mettle_ranger/domain/enums.dart';
+import 'package:mettle_ranger/domain/load_calculator.dart';
+import 'package:mettle_ranger/domain/round_timer.dart';
+import 'package:mettle_ranger/domain/segment_resolver.dart';
+import 'package:mettle_ranger/domain/storage_policy.dart';
+
+void main() {
+  group('SegmentResolver — global offset to segment + local offset', () {
+    const resolver = SegmentResolver();
+    const segs = [
+      SegmentInfo(
+        index: 0,
+        fileName: 'segment_0000.mp4',
+        startOffsetMs: 0,
+        durationMs: 300000,
+      ),
+      SegmentInfo(
+        index: 1,
+        fileName: 'segment_0001.mp4',
+        startOffsetMs: 300000,
+        durationMs: 300000,
+      ),
+      SegmentInfo(
+        index: 2,
+        fileName: 'segment_0002.mp4',
+        startOffsetMs: 600000,
+        durationMs: 120000,
+      ),
+    ];
+
+    test('resolves an offset inside the first segment', () {
+      final r = resolver.resolve(segments: segs, globalOffsetMs: 45000);
+      expect(r.segment.index, 0);
+      expect(r.localOffsetMs, 45000);
+    });
+
+    test('resolves an offset inside a later segment', () {
+      final r = resolver.resolve(segments: segs, globalOffsetMs: 610000);
+      expect(r.segment.index, 2);
+      expect(r.localOffsetMs, 10000);
+    });
+
+    test(
+      'resolves exactly on a segment boundary to the segment that starts there',
+      () {
+        final r = resolver.resolve(segments: segs, globalOffsetMs: 300000);
+        expect(r.segment.index, 1);
+        expect(r.localOffsetMs, 0);
+      },
+    );
+
+    test('clamps an offset past the end to the tail of the last segment', () {
+      final r = resolver.resolve(segments: segs, globalOffsetMs: 999999);
+      expect(r.segment.index, 2);
+      expect(r.localOffsetMs, 120000);
+    });
+  });
+
+  group('RoundTimerState — the round/rest state machine', () {
+    test('start() puts the timer at round 1, working, elapsed zero', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 5,
+        ),
+      );
+
+      final tick = state.start();
+
+      expect(tick.phase, TimerPhase.working);
+      expect(tick.roundNumber, 1);
+      expect(tick.elapsedInPhaseMs, 0);
+      expect(tick.remainingInPhaseMs, 300_000);
+    });
+
+    test('mid-round, no boundary is crossed', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 5,
+        ),
+      )..start();
+
+      final result = state.advanceTo(150_000);
+
+      expect(result.boundaries, isEmpty);
+      expect(result.tick.phase, TimerPhase.working);
+      expect(result.tick.elapsedInPhaseMs, 150_000);
+      expect(result.tick.remainingInPhaseMs, 150_000);
+    });
+
+    test('crossing a round length enters rest and stamps one boundary', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 5,
+        ),
+      )..start();
+
+      final result = state.advanceTo(300_000);
+
+      expect(result.boundaries, hasLength(1));
+      expect(result.boundaries.single.roundNumber, 1);
+      expect(result.boundaries.single.startedAtMs, 0);
+      expect(result.boundaries.single.endedAtMs, 300_000);
+      expect(result.tick.phase, TimerPhase.resting);
+      expect(
+        result.tick.roundNumber,
+        1,
+        reason: 'still round 1, resting after it',
+      );
+    });
+
+    test('crossing rest starts round 2 with no boundary of its own', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 5,
+        ),
+      )..start();
+
+      state.advanceTo(300_000); // into rest
+      final result = state.advanceTo(360_000); // rest ends
+
+      expect(
+        result.boundaries,
+        isEmpty,
+        reason: 'only round ends chapter, not rest ends',
+      );
+      expect(result.tick.phase, TimerPhase.working);
+      expect(result.tick.roundNumber, 2);
+      expect(result.tick.elapsedInPhaseMs, 0);
+    });
+
+    test('zero rest length goes straight into the next round', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 0,
+          roundCount: 3,
+        ),
+      )..start();
+
+      final result = state.advanceTo(300_000);
+
+      expect(result.boundaries, hasLength(1));
+      expect(result.tick.phase, TimerPhase.working);
+      expect(result.tick.roundNumber, 2);
+    });
+
+    test('the last round finishes the session, with its own boundary', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 2,
+        ),
+      )..start();
+
+      state.advanceTo(300_000); // round 1 -> rest
+      state.advanceTo(360_000); // rest -> round 2
+      final result = state.advanceTo(660_000); // round 2 ends
+
+      expect(result.boundaries, hasLength(1));
+      expect(result.boundaries.single.roundNumber, 2);
+      expect(result.tick.phase, TimerPhase.finished);
+    });
+
+    test('a single-round session finishes right after round 1', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 1,
+        ),
+      )..start();
+
+      final result = state.advanceTo(300_000);
+
+      expect(result.tick.phase, TimerPhase.finished);
+      expect(result.boundaries, hasLength(1));
+    });
+
+    test('advancing past finished is inert — no further boundaries', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 0,
+          roundCount: 1,
+        ),
+      )..start();
+
+      state.advanceTo(300_000);
+      final result = state.advanceTo(9_999_000);
+
+      expect(result.boundaries, isEmpty);
+      expect(result.tick.phase, TimerPhase.finished);
+    });
+
+    test('a jump spanning several rounds crosses every boundary in order', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 60,
+          restLengthSeconds: 0,
+          roundCount: 4,
+        ),
+      )..start();
+
+      // Skip straight from round 1 to the middle of round 4 — the kind of
+      // jump a backgrounded-then-foregrounded app has to catch up on.
+      final result = state.advanceTo(210_000);
+
+      expect(result.boundaries.map((b) => b.roundNumber), [1, 2, 3]);
+      expect(result.tick.phase, TimerPhase.working);
+      expect(result.tick.roundNumber, 4);
+      expect(result.tick.elapsedInPhaseMs, 30_000);
+    });
+  });
+
+  group('ChapterStamper — timer events to pending chapters', () {
+    const stamper = ChapterStamper();
+
+    test('a round boundary becomes an unflagged chapter for that round', () {
+      final pending = stamper.fromRoundBoundary(
+        const RoundBoundary(
+          roundNumber: 3,
+          startedAtMs: 1_200_000,
+          endedAtMs: 1_500_000,
+        ),
+      );
+
+      expect(pending.startOffsetMs, 1_200_000);
+      expect(pending.endOffsetMs, 1_500_000);
+      expect(pending.flagged, isFalse);
+      expect(pending.roundNumber, 3);
+    });
+
+    test('a MARK tap becomes a flagged, instantaneous chapter', () {
+      final pending = stamper.fromMark(742_000);
+
+      expect(pending.startOffsetMs, 742_000);
+      expect(pending.endOffsetMs, 742_000);
+      expect(pending.flagged, isTrue);
+      expect(pending.roundNumber, isNull);
+    });
+  });
+
+  group('StoragePolicy — spec §7 guards', () {
+    const policy = StoragePolicy();
+
+    test('refuses below the 3 GB floor regardless of projected size', () {
+      final result = policy.evaluateBeforeStart(
+        freeBytes: (kMinFreeBytesToStart - 1),
+        plannedDurationSeconds: 60,
+        quality: CaptureQuality.p720,
+      );
+
+      expect(result.verdict, StorageVerdict.refuse);
+      expect(result.canStart, isFalse);
+    });
+
+    test('warns between the floor and the 5 GB threshold', () {
+      final result = policy.evaluateBeforeStart(
+        freeBytes: 4 * kBytesPerGigabyte,
+        plannedDurationSeconds: 60,
+        quality: CaptureQuality.p720,
+      );
+
+      expect(result.verdict, StorageVerdict.warn);
+      expect(result.canStart, isTrue);
+    });
+
+    test(
+      'warns above 5 GB free when the session itself would eat the floor',
+      () {
+        // A long 1080p session against exactly 6 GB free: projects to well
+        // over the floor once subtracted, so the fixed threshold alone would
+        // miss this.
+        final result = policy.evaluateBeforeStart(
+          freeBytes: 6 * kBytesPerGigabyte,
+          plannedDurationSeconds: 3600,
+          quality: CaptureQuality.p1080,
+        );
+
+        expect(result.verdict, StorageVerdict.warn);
+      },
+    );
+
+    test('clears comfortably when free space dwarfs the projection', () {
+      final result = policy.evaluateBeforeStart(
+        freeBytes: 40 * kBytesPerGigabyte,
+        plannedDurationSeconds: 1800,
+        quality: CaptureQuality.p720,
+      );
+
+      expect(result.verdict, StorageVerdict.ok);
+    });
+
+    test('projects bytes from the estimated bitrate', () {
+      final bytes = policy.projectedBytes(
+        durationSeconds: 3600,
+        quality: CaptureQuality.p720,
+      );
+
+      expect(bytes, 1_800_000_000); // 4 Mbps for one hour, in bytes
+    });
+
+    test('thermal: only severe and above stop a recording', () {
+      expect(shouldStopForThermal(ThermalLevel.none), isFalse);
+      expect(shouldStopForThermal(ThermalLevel.light), isFalse);
+      expect(shouldStopForThermal(ThermalLevel.moderate), isFalse);
+      expect(shouldStopForThermal(ThermalLevel.severe), isTrue);
+      expect(shouldStopForThermal(ThermalLevel.critical), isTrue);
+      expect(shouldStopForThermal(ThermalLevel.shutdown), isTrue);
+    });
+
+    test('battery: warns strictly below 20 percent', () {
+      expect(isBatteryLow(19), isTrue);
+      expect(isBatteryLow(20), isFalse);
+      expect(isBatteryLow(5), isTrue);
+    });
+
+    test('retention: only untrimmed, unflagged, old recordings qualify', () {
+      final now = DateTime(2026, 9, 18);
+
+      expect(
+        isRetentionCandidate(
+          createdAt: now.subtract(const Duration(days: 31)),
+          trimmedFlag: false,
+          hasFlaggedChapter: false,
+          retentionDays: 30,
+          now: now,
+        ),
+        isTrue,
+      );
+      expect(
+        isRetentionCandidate(
+          createdAt: now.subtract(const Duration(days: 31)),
+          trimmedFlag: true,
+          hasFlaggedChapter: false,
+          retentionDays: 30,
+          now: now,
+        ),
+        isFalse,
+        reason: 'already trimmed',
+      );
+      expect(
+        isRetentionCandidate(
+          createdAt: now.subtract(const Duration(days: 31)),
+          trimmedFlag: false,
+          hasFlaggedChapter: true,
+          retentionDays: 30,
+          now: now,
+        ),
+        isFalse,
+        reason: 'a marked recording is never swept',
+      );
+      expect(
+        isRetentionCandidate(
+          createdAt: now.subtract(const Duration(days: 10)),
+          trimmedFlag: false,
+          hasFlaggedChapter: false,
+          retentionDays: 30,
+          now: now,
+        ),
+        isFalse,
+        reason: 'not old enough yet',
+      );
+    });
+  });
+
+  group('load_calculator', () {
+    test('loadScore is zero with no sRPE rating', () {
+      expect(loadScore(sRpe: null, matTimeSeconds: 1200), 0);
+    });
+
+    test('loadScore is sRPE times whole minutes of mat time', () {
+      expect(loadScore(sRpe: 8, matTimeSeconds: 1200), 160);
+    });
+
+    test('matTimeFromDurations sums round durations', () {
+      expect(matTimeFromDurations([300, 300, 600]), 1200);
+    });
+
+    test('sparringRatio counts only spar and roll as live', () {
+      final ratio = sparringRatio(
+        roundDurationsSeconds: [600, 300, 300],
+        roundModes: [RoundMode.drill, RoundMode.roll, RoundMode.spar],
+      );
+      expect(ratio, 0.5);
+    });
+
+    test('sparringRatio is zero with no rounds', () {
+      expect(sparringRatio(roundDurationsSeconds: [], roundModes: []), 0);
+    });
+  });
+
+  group('RoundTimerEngine — real-time adapter', () {
+    test('streams ticks and a boundary across a short session', () async {
+      final engine = RoundTimerEngine(
+        const RoundPlan(
+          roundLengthSeconds: 1,
+          restLengthSeconds: 1,
+          roundCount: 2,
+        ),
+        tickEvery: const Duration(milliseconds: 100),
+      );
+      addTearDown(engine.dispose);
+
+      final boundaries = <RoundBoundary>[];
+      final sub = engine.boundaries.listen(boundaries.add);
+      addTearDown(sub.cancel);
+
+      engine.start();
+      // 1s round + 1s rest + 1s round, with slack for scheduler jitter.
+      await Future<void>.delayed(const Duration(milliseconds: 3500));
+
+      expect(boundaries.map((b) => b.roundNumber), [1, 2]);
+      expect(engine.phase, TimerPhase.finished);
+    });
+  });
+}
