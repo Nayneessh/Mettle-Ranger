@@ -1,0 +1,47 @@
+# --- Flutter / Dart ---
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock.bak
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# --- Android ---
+android/.gradle/
+android/captures/
+android/local.properties
+android/key.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+**/*.jks
+**/*.keystore
+
+# --- Secrets (spec §6) ---
+# Signing keystores live in a password manager and reach CI as a secret.
+# Supabase, AdMob and RevenueCat keys reach CI the same way. Nothing here is
+# ever committed in plaintext, from the first commit onward.
+.env
+.env.*
+!.env.example
+*.pem
+service-account.json
+google-services.json
+
+# --- Generated: kept out of the tree, rebuilt by build_runner in CI ---
+*.g.dart
+*.freezed.dart
+
+# --- Video (never belongs in a repo) ---
+*.mp4
+*.mov

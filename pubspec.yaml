@@ -1,0 +1,31 @@
+name: mettle_ranger
+description: "Martial-arts training log with on-camera sessions and round-boundary auto-chaptering."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- local store (spec §3: source of truth for the log, offline by default) ---
+  drift: ^2.28.2
+  drift_flutter: ^0.2.7
+  path: ^1.9.0
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  build_runner: ^2.7.1
+  drift_dev: ^2.28.2
+  flutter_lints: ^5.0.0
+  # In-memory SQLite for schema/DAO tests without a device.
+  sqlite3: ^2.9.0
+
+flutter:
+  uses-material-design: true
