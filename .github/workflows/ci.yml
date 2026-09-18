@@ -7,6 +7,10 @@ on:
     branches: ['**']
   pull_request:
     branches: [main]
+  # Manual-only: builds the debug APK and publishes it as a GitHub Release
+  # asset rather than a 14-day Actions artifact, so it has a stable,
+  # directly downloadable link. Never fires on a normal push.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -51,6 +55,8 @@ jobs:
     needs: analyze-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -102,3 +108,23 @@ jobs:
           name: mettle-ranger-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+      # Manual-dispatch only. Actions artifacts live behind Azure Blob
+      # Storage, unreachable from some restricted-egress environments;
+      # a Release asset is uploaded straight from this runner (which has
+      # full internet access) and served from GitHub's own domain, so it
+      # is fetchable from anywhere that can reach github.com. Overwrites a
+      # single rolling "debug-apk" tag rather than creating a new release
+      # per run.
+      - name: Publish as a GitHub Release asset
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk mettle-ranger-debug.apk
+          gh release delete debug-apk --yes --cleanup-tag -R "${{ github.repository }}" || true
+          gh release create debug-apk mettle-ranger-debug.apk \
+            -R "${{ github.repository }}" \
+            --title "Mettle Ranger — debug build" \
+            --notes "Debug-signed APK built from ${{ github.sha }} (branch: ${{ github.ref_name }}). Not release-signed. See README.md for what is and isn't hardware-validated." \
+            --target "${{ github.sha }}"
