@@ -64,7 +64,7 @@ class CaptureForegroundService : LifecycleService() {
     }
 
     private val binder = LocalBinder()
-    private val mainExecutor by lazy { ContextCompat.getMainExecutor(this) }
+    private val mainThreadExecutor by lazy { ContextCompat.getMainExecutor(this) }
     private val rolloverHandler = Handler(Looper.getMainLooper())
     private val rolloverRunnable = Runnable { rolloverSegment() }
 
@@ -171,7 +171,7 @@ class CaptureForegroundService : LifecycleService() {
                 listener?.onEvent(errorEvent("camera bind failed: ${error.message}", fatal = true))
                 resolveStart(false)
             }
-        }, mainExecutor)
+        }, mainThreadExecutor)
     }
 
     fun stopRecording(onStopped: (Map<String, Any?>) -> Unit) {
@@ -200,7 +200,7 @@ class CaptureForegroundService : LifecycleService() {
             if (hasPermission(android.Manifest.permission.RECORD_AUDIO)) {
                 pending = pending.withAudioEnabled()
             }
-            activeRecording = pending.start(mainExecutor) { event ->
+            activeRecording = pending.start(mainThreadExecutor) { event ->
                 handleVideoRecordEvent(event, fileName)
             }
             rolloverHandler.postDelayed(rolloverRunnable, SEGMENT_DURATION_MS)
