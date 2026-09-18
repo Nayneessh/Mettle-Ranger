@@ -133,7 +133,9 @@ jobs:
               DEFINES+=(--dart-define="$name=$value")
             fi
           done
-          flutter build apk --release --split-per-abi --target-platform android-arm64 "${DEFINES[@]}"
+          flutter build apk --release --split-per-abi --target-platform android-arm64 \
+            --split-debug-info=build/debug-info --obfuscate \
+            "${DEFINES[@]}"
           ls -la build/app/outputs/flutter-apk/
 
       # Actions artifacts live behind Azure Blob Storage, unreachable from
