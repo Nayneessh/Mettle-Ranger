@@ -1,10 +1,15 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mettle_ranger/backup/backup_projection.dart';
 import 'package:mettle_ranger/data/daos/chapter_dao.dart';
 import 'package:mettle_ranger/data/database.dart';
+import 'package:mettle_ranger/data/movement_seed.dart';
 import 'package:mettle_ranger/data/tables.dart';
+import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 /// The three rules in spec §4 are the ones that cost a user their data when
 /// broken, so each gets a test that fails loudly rather than a comment that
@@ -42,9 +47,9 @@ void main() {
       );
 
   group('migrations', () {
-    test('an empty database opens at schema version 1', () async {
+    test('an empty database opens at schema version 2', () async {
       await db.customSelect('SELECT 1').get();
-      expect(db.schemaVersion, 1);
+      expect(db.schemaVersion, 2);
     });
 
     test('creating the database seeds exactly one settings row', () async {
@@ -60,10 +65,148 @@ void main() {
       );
     });
 
+    test('creating the database seeds exactly one goals row', () async {
+      final goalsRows = await db.select(db.goals).get();
+      expect(goalsRows, hasLength(1));
+      expect(goalsRows.single.id, kGoalsRowId);
+      expect(goalsRows.single.weeklySessionTarget, greaterThan(0));
+    });
+
+    test('creating the database seeds the starter movements catalog', () async {
+      final movementRows = await db.movementDao.allMovements();
+      expect(movementRows, hasLength(kSeedMovements.length));
+      expect(movementRows.every((m) => !m.isCustom), isTrue);
+    });
+
     test('foreign keys are enforced on an opened database', () async {
       final row = await db.customSelect('PRAGMA foreign_keys').getSingle();
       expect(row.data.values.first, 1);
     });
+
+    test(
+      'upgrading a real v1 database adds v2 tables without losing data',
+      () async {
+        final dir = await Directory.systemTemp.createTemp(
+          'mettle_migration_test',
+        );
+        addTearDown(() => dir.delete(recursive: true));
+        final path = p.join(dir.path, 'v1.sqlite');
+
+        // A hand-authored snapshot of the schema this app actually shipped as
+        // v1 (spec §4's six tables, none of which changed shape in v2) —
+        // simulating a real user's on-disk database rather than trusting the
+        // current code to round-trip its own assumptions about "before".
+        final raw = sqlite3.sqlite3.open(path);
+        raw.execute('''
+          CREATE TABLE sessions (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            date INTEGER NOT NULL,
+            discipline TEXT NOT NULL,
+            gi_flag INTEGER NOT NULL DEFAULT 0,
+            rounds_planned INTEGER NOT NULL,
+            duration INTEGER NOT NULL DEFAULT 0,
+            s_rpe INTEGER NULL,
+            partner_count INTEGER NOT NULL DEFAULT 0,
+            notes TEXT NOT NULL DEFAULT '',
+            mat_time INTEGER NOT NULL DEFAULT 0,
+            load_score INTEGER NOT NULL DEFAULT 0,
+            CHECK (rounds_planned >= 0),
+            CHECK (duration >= 0),
+            CHECK (partner_count >= 0),
+            CHECK (mat_time >= 0),
+            CHECK (load_score >= 0),
+            CHECK (s_rpe IS NULL OR s_rpe BETWEEN 1 AND 10)
+          );
+          CREATE TABLE rounds (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            session INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+            number INTEGER NOT NULL,
+            duration INTEGER NOT NULL,
+            mode TEXT NOT NULL,
+            intensity INTEGER NULL,
+            UNIQUE (session, number),
+            CHECK (number > 0),
+            CHECK (duration >= 0),
+            CHECK (intensity IS NULL OR intensity BETWEEN 1 AND 10)
+          );
+          CREATE TABLE recordings (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            session INTEGER NOT NULL UNIQUE REFERENCES sessions (id) ON DELETE CASCADE,
+            local_path TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            size_bytes INTEGER NOT NULL,
+            resolution TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            trimmed_flag INTEGER NOT NULL DEFAULT 0,
+            CHECK (duration >= 0),
+            CHECK (size_bytes >= 0)
+          );
+          CREATE TABLE segments (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            recording INTEGER NOT NULL REFERENCES recordings (id) ON DELETE CASCADE,
+            segment_index INTEGER NOT NULL,
+            file_name TEXT NOT NULL,
+            start_offset_ms INTEGER NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            size_bytes INTEGER NOT NULL,
+            UNIQUE (recording, segment_index),
+            CHECK (segment_index >= 0),
+            CHECK (start_offset_ms >= 0),
+            CHECK (duration_ms >= 0),
+            CHECK (size_bytes >= 0)
+          );
+          CREATE TABLE chapters (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            recording INTEGER NOT NULL REFERENCES recordings (id) ON DELETE CASCADE,
+            round_ref INTEGER NULL REFERENCES rounds (id) ON DELETE CASCADE,
+            start_offset INTEGER NOT NULL,
+            end_offset INTEGER NOT NULL,
+            flagged INTEGER NOT NULL DEFAULT 0,
+            CHECK (start_offset >= 0),
+            CHECK (end_offset >= start_offset)
+          );
+          CREATE TABLE settings (
+            id INTEGER NOT NULL DEFAULT 1,
+            units TEXT NOT NULL DEFAULT 'metric',
+            default_round_length INTEGER NOT NULL DEFAULT 300,
+            default_quality TEXT NOT NULL DEFAULT 'p720',
+            retention_days INTEGER NOT NULL DEFAULT 30,
+            ads_removed INTEGER NOT NULL DEFAULT 0,
+            consent_accepted_at INTEGER NULL,
+            PRIMARY KEY (id),
+            CHECK (id = 1),
+            CHECK (default_round_length > 0),
+            CHECK (retention_days > 0)
+          );
+        ''');
+        raw.execute('INSERT INTO settings (id) VALUES (1)');
+        raw.execute('''
+          INSERT INTO sessions
+            (date, discipline, gi_flag, rounds_planned, duration, s_rpe, partner_count, notes, mat_time, load_score)
+          VALUES
+            (${DateTime(2026, 1, 1).millisecondsSinceEpoch}, 'bjj', 0, 5, 1800, 7, 2, 'pre-migration session', 1200, 84)
+        ''');
+        raw.execute('PRAGMA user_version = 1');
+        raw.dispose();
+
+        final migrated = MettleDatabase(NativeDatabase(File(path)));
+        addTearDown(migrated.close);
+
+        final sessions = await migrated.sessionDao.allSessions();
+        expect(sessions, hasLength(1));
+        expect(
+          sessions.single.notes,
+          'pre-migration session',
+          reason: 'a real user\'s existing log must survive the upgrade',
+        );
+
+        final goalsRow = await migrated.goalsDao.current();
+        expect(goalsRow.id, kGoalsRowId);
+
+        final movementRows = await migrated.movementDao.allMovements();
+        expect(movementRows, hasLength(kSeedMovements.length));
+      },
+    );
   });
 
   group('RULE 1 — deleting a recording never deletes its session', () {

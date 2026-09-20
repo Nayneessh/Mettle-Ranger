@@ -266,3 +266,160 @@ class Settings extends Table {
     'CHECK (retention_days > 0)',
   ];
 }
+
+/// The only permitted primary key in [Goals].
+const int kGoalsRowId = 1;
+
+/// Weekly training targets, singleton like [Settings]. Drives the Today
+/// screen's priority goal ring — one ring, one number, not a dashboard of
+/// competing targets.
+@DataClassName('GoalsRow')
+class Goals extends Table {
+  IntColumn get id => integer().withDefault(const Constant(kGoalsRowId))();
+
+  IntColumn get weeklySessionTarget =>
+      integer().withDefault(const Constant(3))();
+
+  IntColumn get weeklyMatMinutesTarget =>
+      integer().withDefault(const Constant(180))();
+
+  /// The discipline the goal ring tracks when the user wants one discipline
+  /// front and center rather than training as a whole. Null means "all
+  /// disciplines count" — never a forced default, per spec §11.
+  TextColumn get priorityDiscipline => textEnum<Discipline>().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK (id = 1)',
+    'CHECK (weekly_session_target > 0)',
+    'CHECK (weekly_mat_minutes_target > 0)',
+  ];
+}
+
+/// A trainable technique, combo, or drill a [RoutineMovements] entry can
+/// reference. Seeded with a starter catalog per discipline on first run;
+/// users can add their own alongside the seeded set.
+@DataClassName('MovementRow')
+class Movements extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+
+  /// Null means the movement applies across disciplines (e.g. a general
+  /// conditioning drill) rather than belonging to one.
+  TextColumn get discipline => textEnum<Discipline>().nullable()();
+
+  TextColumn get category => textEnum<MovementCategory>()();
+
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// False for the seeded starter catalog, true for anything the user adds —
+  /// lets Settings offer "reset catalog" without touching user-authored
+  /// entries.
+  BoolColumn get isCustom => boolean().withDefault(const Constant(true))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name, discipline},
+  ];
+}
+
+/// A named weekly training plan. A user can hold more than one (e.g. a
+/// competition camp alongside a base routine); [active] marks the one the
+/// Today screen and Programme tab default to.
+@DataClassName('RoutineRow')
+class Routines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+
+  BoolColumn get active => boolean().withDefault(const Constant(true))();
+
+  DateTimeColumn get createdAt => dateTime()();
+}
+
+/// One day of a [Routines] week: 1:N from Routines, at most one row per
+/// weekday per routine.
+@DataClassName('RoutineDayRow')
+class RoutineDays extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get routine =>
+      integer().references(Routines, #id, onDelete: KeyAction.cascade)();
+
+  /// 0 = Monday .. 6 = Sunday, matching [SessionRow.date]'s ISO weekday
+  /// convention used elsewhere in the app (week strip, Progress charts).
+  IntColumn get weekday => integer()();
+
+  TextColumn get label => text().withDefault(const Constant(''))();
+
+  BoolColumn get restDay => boolean().withDefault(const Constant(false))();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {routine, weekday},
+  ];
+
+  @override
+  List<String> get customConstraints => const ['CHECK (weekday BETWEEN 0 AND 6)'];
+}
+
+/// A [Movements] entry placed on a [RoutineDays] day, with its own position
+/// and optional per-day target — 1:N from RoutineDays, N:1 into Movements so
+/// the same movement can appear on multiple days.
+@DataClassName('RoutineMovementRow')
+class RoutineMovements extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get routineDay =>
+      integer().references(RoutineDays, #id, onDelete: KeyAction.cascade)();
+
+  IntColumn get movement =>
+      integer().references(Movements, #id, onDelete: KeyAction.cascade)();
+
+  /// 0-based order within the day.
+  IntColumn get position => integer()();
+
+  IntColumn get targetRounds => integer().nullable()();
+
+  IntColumn get targetDurationSeconds => integer().nullable()();
+
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK (position >= 0)',
+    'CHECK (target_rounds IS NULL OR target_rounds > 0)',
+    'CHECK (target_duration_seconds IS NULL OR target_duration_seconds > 0)',
+  ];
+}
+
+/// A body-measurement check-in. Always stored in canonical metric units
+/// (kg, cm) regardless of [Settings.units] — that column only controls
+/// display, the same way it already does for round length and load. This
+/// table did not exist in schema v1: the original spec named weight/measurement
+/// tracking a non-goal, reversed by explicit user request.
+@DataClassName('BodyCheckInRow')
+class BodyCheckIns extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  DateTimeColumn get date => dateTime()();
+
+  RealColumn get weightKg => real().nullable()();
+
+  RealColumn get bodyFatPercent => real().nullable()();
+
+  RealColumn get waistCm => real().nullable()();
+
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK (weight_kg IS NULL OR weight_kg > 0)',
+    'CHECK (body_fat_percent IS NULL OR body_fat_percent BETWEEN 0 AND 100)',
+    'CHECK (waist_cm IS NULL OR waist_cm > 0)',
+  ];
+}

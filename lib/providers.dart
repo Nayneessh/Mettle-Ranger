@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/daos/body_check_in_dao.dart';
 import 'data/daos/chapter_dao.dart';
+import 'data/daos/goals_dao.dart';
+import 'data/daos/movement_dao.dart';
 import 'data/daos/recording_dao.dart';
+import 'data/daos/routine_dao.dart';
 import 'data/daos/session_dao.dart';
 import 'data/daos/settings_dao.dart';
 import 'data/database.dart';
@@ -34,6 +38,22 @@ final settingsDaoProvider = Provider<SettingsDao>(
   (ref) => ref.watch(databaseProvider).settingsDao,
 );
 
+final goalsDaoProvider = Provider<GoalsDao>(
+  (ref) => ref.watch(databaseProvider).goalsDao,
+);
+
+final movementDaoProvider = Provider<MovementDao>(
+  (ref) => ref.watch(databaseProvider).movementDao,
+);
+
+final routineDaoProvider = Provider<RoutineDao>(
+  (ref) => ref.watch(databaseProvider).routineDao,
+);
+
+final bodyCheckInDaoProvider = Provider<BodyCheckInDao>(
+  (ref) => ref.watch(databaseProvider).bodyCheckInDao,
+);
+
 /// The live settings row. Read this rather than calling `current()` directly
 /// anywhere the UI needs to react to a change — the consent gate and the
 /// default-quality pickers both depend on it staying current.
@@ -61,4 +81,28 @@ final allRecordingsStreamProvider = StreamProvider<List<RecordingRow>>(
 /// number after a write call `ref.invalidate(totalStorageBytesProvider)`.
 final totalStorageBytesProvider = FutureProvider<int>(
   (ref) => ref.watch(recordingDaoProvider).totalBytes(),
+);
+
+final goalsStreamProvider = StreamProvider<GoalsRow>(
+  (ref) => ref.watch(goalsDaoProvider).watch(),
+);
+
+final allMovementsStreamProvider = StreamProvider<List<MovementRow>>(
+  (ref) => ref.watch(movementDaoProvider).watchAllMovements(),
+);
+
+final activeRoutineStreamProvider = StreamProvider<RoutineRow?>(
+  (ref) => ref.watch(routineDaoProvider).watchActiveRoutine(),
+);
+
+final allRoutinesStreamProvider = StreamProvider<List<RoutineRow>>(
+  (ref) => ref.watch(routineDaoProvider).watchAllRoutines(),
+);
+
+final allBodyCheckInsStreamProvider = StreamProvider<List<BodyCheckInRow>>(
+  (ref) => ref.watch(bodyCheckInDaoProvider).watchAllCheckIns(),
+);
+
+final latestBodyCheckInStreamProvider = StreamProvider<BodyCheckInRow?>(
+  (ref) => ref.watch(bodyCheckInDaoProvider).watchLatest(),
 );

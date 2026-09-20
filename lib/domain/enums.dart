@@ -17,3 +17,9 @@ enum RoundMode { technique, drill, pads, bag, spar, roll, conditioning }
 enum CaptureQuality { p720, p1080 }
 
 enum UnitSystem { metric, imperial }
+
+/// What kind of thing a [Movements] catalog entry is. Martial-arts
+/// equivalents of a gym app's exercise categories — there is deliberately no
+/// "strength"/"cardio" split here, because a routine in this app is a week
+/// of training, not a lifting program.
+enum MovementCategory { technique, combo, drill, conditioning, sparring }
