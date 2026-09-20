@@ -5,6 +5,7 @@ import 'package:mettle_ranger/domain/load_calculator.dart';
 import 'package:mettle_ranger/domain/round_timer.dart';
 import 'package:mettle_ranger/domain/segment_resolver.dart';
 import 'package:mettle_ranger/domain/storage_policy.dart';
+import 'package:mettle_ranger/domain/streak_calculator.dart';
 
 void main() {
   group('SegmentResolver — global offset to segment + local offset', () {
@@ -423,6 +424,66 @@ void main() {
 
       expect(boundaries.map((b) => b.roundNumber), [1, 2]);
       expect(engine.phase, TimerPhase.finished);
+    });
+  });
+
+  group('weeklyStreak', () {
+    test('zero with no sessions', () {
+      final streak = weeklyStreak(sessionDates: const [], today: DateTime(2026, 9, 20));
+      expect(streak.current, 0);
+      expect(streak.best, 0);
+    });
+
+    test('counts back-to-back weeks ending with the current week', () {
+      // Sunday 2026-09-20 is in the week starting Mon 2026-09-14.
+      final streak = weeklyStreak(
+        sessionDates: [
+          DateTime(2026, 9, 15), // week of 9/14
+          DateTime(2026, 9, 8), // week of 9/7
+          DateTime(2026, 9, 1), // week of 8/31
+        ],
+        today: DateTime(2026, 9, 20),
+      );
+      expect(streak.current, 3);
+      expect(streak.best, 3);
+    });
+
+    test('a gap week breaks the current streak but not the best', () {
+      final streak = weeklyStreak(
+        sessionDates: [
+          DateTime(2026, 9, 15), // week of 9/14 — current week
+          // week of 9/7 skipped
+          DateTime(2026, 8, 31), // week of 8/31
+          DateTime(2026, 8, 24), // week of 8/24
+          DateTime(2026, 8, 17), // week of 8/17
+        ],
+        today: DateTime(2026, 9, 20),
+      );
+      expect(streak.current, 1, reason: 'only this week is unbroken back to today');
+      expect(streak.best, 3, reason: 'the earlier 3-week run is still the best on record');
+    });
+
+    test(
+      'the current week not being trained yet does not break the streak',
+      () {
+        // Today falls in the week of 9/14, which has no session logged yet —
+        // that week is simply not over, not a miss, so the streak should
+        // still reflect last week (9/7) rather than reading as broken.
+        final streak = weeklyStreak(
+          sessionDates: [DateTime(2026, 9, 8)], // week of 9/7
+          today: DateTime(2026, 9, 14), // Monday of the following week
+        );
+        expect(streak.current, 1);
+      },
+    );
+
+    test('a fully-elapsed untrained week does break the streak', () {
+      final streak = weeklyStreak(
+        sessionDates: [DateTime(2026, 8, 25)], // week of 8/24, two weeks back
+        today: DateTime(2026, 9, 14), // week of 9/14 — 9/7 was skipped entirely
+      );
+      expect(streak.current, 0);
+      expect(streak.best, 1);
     });
   });
 }
