@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mettle_ranger/domain/chapter_stamper.dart';
 import 'package:mettle_ranger/domain/enums.dart';
 import 'package:mettle_ranger/domain/load_calculator.dart';
+import 'package:mettle_ranger/domain/progress_index.dart';
 import 'package:mettle_ranger/domain/round_timer.dart';
 import 'package:mettle_ranger/domain/segment_resolver.dart';
 import 'package:mettle_ranger/domain/storage_policy.dart';
@@ -484,6 +485,51 @@ void main() {
       );
       expect(streak.current, 0);
       expect(streak.best, 1);
+    });
+  });
+
+  group('bucketLoadByWeek', () {
+    test('sums load per Monday-start week and fills empty weeks with zero', () {
+      final buckets = bucketLoadByWeek(
+        sessions: [
+          (date: DateTime(2026, 9, 1), loadScore: 40), // week of 8/31
+          (date: DateTime(2026, 9, 3), loadScore: 20), // week of 8/31
+          // week of 9/7 has nothing
+          (date: DateTime(2026, 9, 15), loadScore: 60), // week of 9/14
+        ],
+        from: DateTime(2026, 8, 31),
+        to: DateTime(2026, 9, 14),
+      );
+
+      expect(buckets, hasLength(3));
+      expect(buckets[0].totalLoad, 60, reason: '40 + 20 in the first week');
+      expect(buckets[1].totalLoad, 0, reason: 'the middle week has no sessions');
+      expect(buckets[2].totalLoad, 60);
+    });
+
+    test('a session outside the range is not counted', () {
+      final buckets = bucketLoadByWeek(
+        sessions: [(date: DateTime(2026, 8, 1), loadScore: 999)],
+        from: DateTime(2026, 8, 31),
+        to: DateTime(2026, 9, 14),
+      );
+      expect(buckets.fold(0, (t, b) => t + b.totalLoad), 0);
+    });
+  });
+
+  group('bucketLoadByMonth', () {
+    test('sums load per calendar month across a range', () {
+      final buckets = bucketLoadByMonth(
+        sessions: [
+          (date: DateTime(2026, 7, 5), loadScore: 100),
+          (date: DateTime(2026, 7, 20), loadScore: 50),
+          (date: DateTime(2026, 9, 10), loadScore: 200),
+        ],
+        from: DateTime(2026, 7, 1),
+        to: DateTime(2026, 9, 1),
+      );
+
+      expect(buckets.map((b) => b.totalLoad), [150, 0, 200]);
     });
   });
 }
