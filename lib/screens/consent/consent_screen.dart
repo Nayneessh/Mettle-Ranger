@@ -21,6 +21,7 @@ class ConsentScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 12),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             child: Column(

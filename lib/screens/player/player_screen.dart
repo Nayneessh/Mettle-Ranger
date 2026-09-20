@@ -113,6 +113,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
+          // MARK is tapped mid-round with one thumb — give it more real
+          // clearance from the system nav than the other screens' CTAs.
+          minimum: const EdgeInsets.only(bottom: 16),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(

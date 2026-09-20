@@ -110,6 +110,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Session Setup')),
       body: SafeArea(
+        // A minimum, not just whatever the system reports — some OEM
+        // gesture-nav bars under-report their own height, so Begin sat
+        // right under the nav pill on those devices even with SafeArea.
+        minimum: const EdgeInsets.only(bottom: 12),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [

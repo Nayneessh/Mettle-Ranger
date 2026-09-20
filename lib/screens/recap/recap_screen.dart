@@ -104,6 +104,7 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Recap')),
       body: SafeArea(
+        minimum: const EdgeInsets.only(bottom: 12),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
