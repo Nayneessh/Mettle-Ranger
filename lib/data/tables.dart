@@ -288,6 +288,16 @@ class Goals extends Table {
   /// disciplines count" — never a forced default, per spec §11.
   TextColumn get priorityDiscipline => textEnum<Discipline>().nullable()();
 
+  /// Body targets. Kept on the same singleton as the weekly training
+  /// targets rather than a separate table — the Body screen's "Targets"
+  /// section and the weekly goal ring are the same concept ("what am I
+  /// aiming for") applied to two different numbers, and this app has no
+  /// installed base running schema v2 yet to migrate around, so there is no
+  /// cost to keeping them together instead of adding a table.
+  RealColumn get targetWeightKg => real().nullable()();
+
+  RealColumn get targetBodyFatPercent => real().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 
@@ -296,6 +306,8 @@ class Goals extends Table {
     'CHECK (id = 1)',
     'CHECK (weekly_session_target > 0)',
     'CHECK (weekly_mat_minutes_target > 0)',
+    'CHECK (target_weight_kg IS NULL OR target_weight_kg > 0)',
+    'CHECK (target_body_fat_percent IS NULL OR target_body_fat_percent BETWEEN 0 AND 100)',
   ];
 }
 
@@ -412,7 +424,19 @@ class BodyCheckIns extends Table {
 
   RealColumn get bodyFatPercent => real().nullable()();
 
+  // Measurements, all centimetres, all optional — a check-in can log just
+  // weight, just measurements, or both. Matches the reference app's "New
+  // check-in" form field-for-field per the user's explicit request for
+  // "other body measurements" beyond weight and body fat.
+  RealColumn get neckCm => real().nullable()();
+  RealColumn get chestCm => real().nullable()();
   RealColumn get waistCm => real().nullable()();
+  RealColumn get hipsCm => real().nullable()();
+  RealColumn get leftArmCm => real().nullable()();
+  RealColumn get rightArmCm => real().nullable()();
+  RealColumn get forearmCm => real().nullable()();
+  RealColumn get thighCm => real().nullable()();
+  RealColumn get calfCm => real().nullable()();
 
   TextColumn get notes => text().withDefault(const Constant(''))();
 
@@ -420,6 +444,14 @@ class BodyCheckIns extends Table {
   List<String> get customConstraints => const [
     'CHECK (weight_kg IS NULL OR weight_kg > 0)',
     'CHECK (body_fat_percent IS NULL OR body_fat_percent BETWEEN 0 AND 100)',
+    'CHECK (neck_cm IS NULL OR neck_cm > 0)',
+    'CHECK (chest_cm IS NULL OR chest_cm > 0)',
     'CHECK (waist_cm IS NULL OR waist_cm > 0)',
+    'CHECK (hips_cm IS NULL OR hips_cm > 0)',
+    'CHECK (left_arm_cm IS NULL OR left_arm_cm > 0)',
+    'CHECK (right_arm_cm IS NULL OR right_arm_cm > 0)',
+    'CHECK (forearm_cm IS NULL OR forearm_cm > 0)',
+    'CHECK (thigh_cm IS NULL OR thigh_cm > 0)',
+    'CHECK (calf_cm IS NULL OR calf_cm > 0)',
   ];
 }
