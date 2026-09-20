@@ -9,6 +9,7 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/week_strip.dart';
+import '../history/session_detail_screen.dart';
 import '../setup/setup_screen.dart';
 import 'backup_prompt_card.dart';
 import 'last_session_card.dart';
@@ -129,7 +130,15 @@ class _TrainBody extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  LastSessionCard(session: lastSession),
+                  LastSessionCard(
+                    session: lastSession,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            SessionDetailScreen(sessionId: lastSession.id),
+                      ),
+                    ),
+                  ),
                 ] else
                   _EmptyState(),
                 const SizedBox(height: 28),

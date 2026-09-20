@@ -11,7 +11,7 @@ import '../../platform/capture_providers.dart';
 import '../../providers.dart';
 import '../../widgets/storage_meter.dart';
 import '../clip/clip_review_screen.dart';
-import '../train/last_session_card.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel;
 import 'clip_tile.dart';
 
 /// Footage (spec §2, screen 5): clip grid, persistent storage meter,

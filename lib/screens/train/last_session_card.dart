@@ -3,15 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
-import '../../domain/enums.dart';
-
-String disciplineLabel(Discipline d) => switch (d) {
-  Discipline.bjj => 'BJJ',
-  Discipline.boxing => 'Boxing',
-  Discipline.muayThai => 'Muay Thai',
-  Discipline.mma => 'MMA',
-  Discipline.wrestling => 'Wrestling',
-};
+import '../../widgets/labels.dart' show disciplineLabel;
 
 /// The Train screen's "last session" card (spec §2, screen 1) — the most
 /// recent entry in the log, always real data, never a placeholder number.
@@ -61,7 +53,7 @@ class LastSessionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${disciplineLabel(session.discipline)}${session.giFlag ? ' · Gi' : ''}',
+                    disciplineLabel(session.discipline),
                     style: const TextStyle(
                       color: AppColors.onBackground,
                       fontWeight: FontWeight.w600,

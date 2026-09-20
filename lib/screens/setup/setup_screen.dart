@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +9,7 @@ import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
 import '../player/player_screen.dart';
-import '../train/last_session_card.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel, roundModeLabel;
 import 'session_draft.dart';
 
 /// Session setup (spec §2, screen 2): discipline, gi, round length/rest/
@@ -21,48 +23,65 @@ class SetupScreen extends ConsumerStatefulWidget {
 }
 
 class _SetupScreenState extends ConsumerState<SetupScreen> {
-  late SessionDraft _draft;
+  SessionDraft? _draft;
   bool _starting = false;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_loadInitialDraft());
+  }
+
+  /// Defaults to whatever the user actually trains, not a fixed discipline —
+  /// the app is not "heavily inclined towards" any one martial art, so
+  /// nothing here hardcodes an always-selected default the way defaulting to
+  /// [Discipline.bjj] on every open did before. Falls back to the first
+  /// listed discipline only when there is no session history yet to learn
+  /// from — a brand-new install has no "usual" discipline to default to.
+  Future<void> _loadInitialDraft() async {
     final defaultQuality =
         ref.read(settingsStreamProvider).valueOrNull?.defaultQuality ??
         CaptureQuality.p720;
-    _draft = SessionDraft.defaultsFor(Discipline.bjj, quality: defaultQuality);
+    final sessions = await ref.read(sessionDaoProvider).allSessions();
+    final discipline = sessions.isNotEmpty ? sessions.first.discipline : Discipline.values.first;
+    if (!mounted) return;
+    setState(() {
+      _draft = SessionDraft.defaultsFor(discipline, quality: defaultQuality);
+    });
   }
 
   void _setDiscipline(Discipline d) {
+    final current = _draft;
+    if (current == null) return;
     setState(() {
-      final quality = _draft.quality;
-      _draft = SessionDraft.defaultsFor(d, quality: quality)
-        ..recordEnabled = _draft.recordEnabled;
+      _draft = SessionDraft.defaultsFor(d, quality: current.quality)
+        ..recordEnabled = current.recordEnabled;
     });
   }
 
   Future<void> _begin() async {
-    if (!_draft.isValid || _starting) return;
+    final draft = _draft;
+    if (draft == null || !draft.isValid || _starting) return;
     setState(() => _starting = true);
 
     final sessionDao = ref.read(sessionDaoProvider);
     final sessionId = await sessionDao.createSession(
       SessionsCompanion.insert(
         date: DateTime.now(),
-        discipline: _draft.discipline,
-        giFlag: Value(_draft.giFlag),
-        roundsPlanned: _draft.roundCount,
+        discipline: draft.discipline,
+        giFlag: Value(draft.giFlag),
+        roundsPlanned: draft.roundCount,
       ),
     );
 
     final roundIds = <int>[];
-    for (var i = 1; i <= _draft.roundCount; i++) {
+    for (var i = 1; i <= draft.roundCount; i++) {
       final id = await sessionDao.addRound(
         RoundsCompanion.insert(
           session: sessionId,
           number: i,
-          duration: _draft.roundLengthSeconds,
-          mode: _draft.roundMode,
+          duration: draft.roundLengthSeconds,
+          mode: draft.roundMode,
         ),
       );
       roundIds.add(id);
@@ -71,17 +90,22 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     if (!mounted) return;
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(
-          sessionId: sessionId,
-          roundIds: roundIds,
-          draft: _draft,
-        ),
+        builder: (_) =>
+            PlayerScreen(sessionId: sessionId, roundIds: roundIds, draft: draft),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final draft = _draft;
+    if (draft == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Session Setup')),
@@ -95,7 +119,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               spacing: 8,
               runSpacing: 8,
               children: Discipline.values.map((d) {
-                final selected = d == _draft.discipline;
+                final selected = d == draft.discipline;
                 return ChoiceChip(
                   label: Text(disciplineLabel(d)),
                   selected: selected,
@@ -103,12 +127,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
-            _SwitchRow(
-              label: 'Gi',
-              value: _draft.giFlag,
-              onChanged: (v) => setState(() => _draft.giFlag = v),
-            ),
+            // Gi only means anything for BJJ — showing it for every
+            // discipline was what made the app read as BJJ-first even
+            // though it welcomes every martial art equally.
+            if (draft.discipline == Discipline.bjj) ...[
+              const SizedBox(height: 24),
+              _SwitchRow(
+                label: 'Gi',
+                value: draft.giFlag,
+                onChanged: (v) => setState(() => draft.giFlag = v),
+              ),
+            ],
             const SizedBox(height: 24),
             const _SectionLabel('Round type'),
             const SizedBox(height: 10),
@@ -116,58 +145,58 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               spacing: 8,
               runSpacing: 8,
               children: RoundMode.values.map((m) {
-                final selected = m == _draft.roundMode;
+                final selected = m == draft.roundMode;
                 return ChoiceChip(
-                  label: Text(_roundModeLabel(m)),
+                  label: Text(roundModeLabel(m)),
                   selected: selected,
-                  onSelected: (_) => setState(() => _draft.roundMode = m),
+                  onSelected: (_) => setState(() => draft.roundMode = m),
                 );
               }).toList(),
             ),
             const SizedBox(height: 24),
             _StepperRow(
               label: 'Round length',
-              valueLabel: _formatMinSec(_draft.roundLengthSeconds),
+              valueLabel: _formatMinSec(draft.roundLengthSeconds),
               onDecrement: () => setState(
-                () => _draft.roundLengthSeconds =
-                    (_draft.roundLengthSeconds - 30).clamp(30, 1800),
+                () => draft.roundLengthSeconds =
+                    (draft.roundLengthSeconds - 30).clamp(30, 1800),
               ),
               onIncrement: () => setState(
-                () => _draft.roundLengthSeconds =
-                    (_draft.roundLengthSeconds + 30).clamp(30, 1800),
+                () => draft.roundLengthSeconds =
+                    (draft.roundLengthSeconds + 30).clamp(30, 1800),
               ),
             ),
             const SizedBox(height: 12),
             _StepperRow(
               label: 'Rest length',
-              valueLabel: _formatMinSec(_draft.restLengthSeconds),
+              valueLabel: _formatMinSec(draft.restLengthSeconds),
               onDecrement: () => setState(
-                () => _draft.restLengthSeconds = (_draft.restLengthSeconds - 15)
+                () => draft.restLengthSeconds = (draft.restLengthSeconds - 15)
                     .clamp(0, 600),
               ),
               onIncrement: () => setState(
-                () => _draft.restLengthSeconds = (_draft.restLengthSeconds + 15)
+                () => draft.restLengthSeconds = (draft.restLengthSeconds + 15)
                     .clamp(0, 600),
               ),
             ),
             const SizedBox(height: 12),
             _StepperRow(
               label: 'Rounds',
-              valueLabel: '${_draft.roundCount}',
+              valueLabel: '${draft.roundCount}',
               onDecrement: () => setState(
-                () => _draft.roundCount = (_draft.roundCount - 1).clamp(1, 20),
+                () => draft.roundCount = (draft.roundCount - 1).clamp(1, 20),
               ),
               onIncrement: () => setState(
-                () => _draft.roundCount = (_draft.roundCount + 1).clamp(1, 20),
+                () => draft.roundCount = (draft.roundCount + 1).clamp(1, 20),
               ),
             ),
             const SizedBox(height: 24),
             _SwitchRow(
               label: 'Record this session',
-              value: _draft.recordEnabled,
-              onChanged: (v) => setState(() => _draft.recordEnabled = v),
+              value: draft.recordEnabled,
+              onChanged: (v) => setState(() => draft.recordEnabled = v),
             ),
-            if (_draft.recordEnabled) ...[
+            if (draft.recordEnabled) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -190,9 +219,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         label: Text('1080p'),
                       ),
                     ],
-                    selected: {_draft.quality},
+                    selected: {draft.quality},
                     onSelectionChanged: (s) =>
-                        setState(() => _draft.quality = s.first),
+                        setState(() => draft.quality = s.first),
                   ),
                 ],
               ),
@@ -202,7 +231,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _draft.isValid && !_starting ? _begin : null,
+                onPressed: draft.isValid && !_starting ? _begin : null,
                 child: _starting
                     ? const SizedBox(
                         width: 22,
@@ -228,15 +257,6 @@ String _formatMinSec(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
-String _roundModeLabel(RoundMode m) => switch (m) {
-  RoundMode.technique => 'Technique',
-  RoundMode.drill => 'Drill',
-  RoundMode.pads => 'Pads',
-  RoundMode.bag => 'Bag',
-  RoundMode.spar => 'Spar',
-  RoundMode.roll => 'Roll',
-  RoundMode.conditioning => 'Conditioning',
-};
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);

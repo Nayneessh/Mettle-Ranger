@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../widgets/storage_meter.dart';
-import '../train/last_session_card.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel;
 
 /// One tile in the Footage clip grid (spec §2, screen 5).
 class ClipTile extends StatelessWidget {

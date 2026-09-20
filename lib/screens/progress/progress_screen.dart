@@ -10,7 +10,7 @@ import '../../domain/enums.dart';
 import '../../domain/load_calculator.dart' as calc;
 import '../../providers.dart';
 import '../../widgets/segmented_proportion_bar.dart';
-import '../train/last_session_card.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel;
 import 'consistency_heatmap.dart';
 import 'mat_time_chart.dart';
 
