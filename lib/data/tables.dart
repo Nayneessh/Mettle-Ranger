@@ -250,6 +250,11 @@ class Settings extends Table {
 
   BoolColumn get adsRemoved => boolean().withDefault(const Constant(false))();
 
+  /// Keeps the screen on for the duration of an active session — off by
+  /// default would mean the phone locks mid-round with the timer still
+  /// running. On by default, user-editable in Settings.
+  BoolColumn get keepScreenAwake => boolean().withDefault(const Constant(true))();
+
   /// Null until the user accepts the camera consent notice. The capture
   /// pipeline refuses to start while this is null (spec §7).
   DateTimeColumn get consentAcceptedAt => dateTime().nullable()();

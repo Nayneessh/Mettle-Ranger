@@ -106,4 +106,25 @@ class MettleDatabase extends _$MettleDatabase {
       await _seedSingletons();
     },
   );
+
+  /// Settings' "Erase everything and start over": wipes every user-entered
+  /// row and puts Settings/Goals/the Movements catalog back to exactly what
+  /// a fresh install would have. Does not touch files on disk (recording
+  /// segments) — the caller is responsible for that, since this class only
+  /// knows about the database, never the filesystem (see `data/tables.dart`'s
+  /// own note on [Recordings.localPath]).
+  Future<void> resetEverything() async {
+    await transaction(() async {
+      await delete(sessions).go();
+      await delete(routines).go();
+      await delete(movements).go();
+      await delete(bodyCheckIns).go();
+      await delete(settings).go();
+      await delete(goals).go();
+      await _seedSingletons();
+      await batch(
+        (b) => b.insertAll(movements, kSeedMovements, mode: InsertMode.insertOrIgnore),
+      );
+    });
+  }
 }

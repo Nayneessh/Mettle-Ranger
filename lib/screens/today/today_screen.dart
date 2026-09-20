@@ -13,6 +13,7 @@ import '../../widgets/week_strip.dart';
 import '../history/session_detail_screen.dart';
 import '../programme/movements_catalog_screen.dart';
 import '../programme/programme_screen.dart';
+import '../settings/settings_screen.dart';
 import '../setup/setup_screen.dart';
 import '../train/backup_prompt_card.dart';
 import '../train/last_session_card.dart';
@@ -157,6 +158,17 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                         MaterialPageRoute(builder: (_) => const ProgrammeScreen()),
                       ),
                       icon: const Icon(Icons.calendar_month_outlined),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.surfaceRaised,
+                        shape: const CircleBorder(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      ),
+                      icon: const Icon(Icons.settings_outlined),
                       style: IconButton.styleFrom(
                         backgroundColor: AppColors.surfaceRaised,
                         shape: const CircleBorder(),

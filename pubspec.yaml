@@ -31,6 +31,8 @@ dependencies:
   # --- monetisation (spec §3, deferred behind test config until launch) ---
   google_mobile_ads: ^5.2.0
   purchases_flutter: ^8.5.0
+  share_plus: ^12.0.2
+  wakelock_plus: ^1.4.0
 
 dev_dependencies:
   flutter_test:

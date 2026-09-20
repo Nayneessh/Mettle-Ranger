@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
@@ -50,6 +53,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
     _controller.addListener(_onControllerChanged);
     _controller.start();
+    unawaited(_applyKeepScreenAwake());
+  }
+
+  /// The screen locking mid-round would pause nothing (the timer keeps
+  /// running regardless), but it would leave the user unable to see the
+  /// clock or reach MARK — this is the one screen in the app where that
+  /// actually matters. Settings-gated rather than unconditional (spec-beyond
+  /// addition, see Settings' own "Keep the screen awake" toggle).
+  Future<void> _applyKeepScreenAwake() async {
+    final settings = await ref.read(settingsDaoProvider).current();
+    if (settings.keepScreenAwake) {
+      await WakelockPlus.enable();
+    }
   }
 
   void _onControllerChanged() {
@@ -71,6 +87,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
+    unawaited(WakelockPlus.disable());
     super.dispose();
   }
 
