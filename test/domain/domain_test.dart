@@ -430,7 +430,10 @@ void main() {
 
   group('weeklyStreak', () {
     test('zero with no sessions', () {
-      final streak = weeklyStreak(sessionDates: const [], today: DateTime(2026, 9, 20));
+      final streak = weeklyStreak(
+        sessionDates: const [],
+        today: DateTime(2026, 9, 20),
+      );
       expect(streak.current, 0);
       expect(streak.best, 0);
     });
@@ -460,8 +463,16 @@ void main() {
         ],
         today: DateTime(2026, 9, 20),
       );
-      expect(streak.current, 1, reason: 'only this week is unbroken back to today');
-      expect(streak.best, 3, reason: 'the earlier 3-week run is still the best on record');
+      expect(
+        streak.current,
+        1,
+        reason: 'only this week is unbroken back to today',
+      );
+      expect(
+        streak.best,
+        3,
+        reason: 'the earlier 3-week run is still the best on record',
+      );
     });
 
     test(
@@ -503,7 +514,11 @@ void main() {
 
       expect(buckets, hasLength(3));
       expect(buckets[0].totalLoad, 60, reason: '40 + 20 in the first week');
-      expect(buckets[1].totalLoad, 0, reason: 'the middle week has no sessions');
+      expect(
+        buckets[1].totalLoad,
+        0,
+        reason: 'the middle week has no sessions',
+      );
       expect(buckets[2].totalLoad, 60);
     });
 

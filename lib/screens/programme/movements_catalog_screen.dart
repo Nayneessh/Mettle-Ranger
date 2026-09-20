@@ -18,16 +18,18 @@ class MovementsCatalogScreen extends ConsumerStatefulWidget {
   const MovementsCatalogScreen({super.key});
 
   @override
-  ConsumerState<MovementsCatalogScreen> createState() => _MovementsCatalogScreenState();
+  ConsumerState<MovementsCatalogScreen> createState() =>
+      _MovementsCatalogScreenState();
 }
 
-class _MovementsCatalogScreenState extends ConsumerState<MovementsCatalogScreen> {
+class _MovementsCatalogScreenState
+    extends ConsumerState<MovementsCatalogScreen> {
   Discipline? _filter;
 
   Future<void> _addMovement() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NewMovementScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NewMovementScreen()));
   }
 
   Future<void> _confirmDelete(MovementRow movement) async {
@@ -108,8 +110,12 @@ class _MovementsCatalogScreenState extends ConsumerState<MovementsCatalogScreen>
                   final filtered = _filter == null
                       ? movements
                       : movements
-                          .where((m) => m.discipline == _filter || m.discipline == null)
-                          .toList();
+                            .where(
+                              (m) =>
+                                  m.discipline == _filter ||
+                                  m.discipline == null,
+                            )
+                            .toList();
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text(
@@ -134,7 +140,10 @@ class _MovementsCatalogScreenState extends ConsumerState<MovementsCatalogScreen>
                   child: CircularProgressIndicator(color: AppColors.gold),
                 ),
                 error: (e, _) => Center(
-                  child: Text('$e', style: const TextStyle(color: AppColors.critical)),
+                  child: Text(
+                    '$e',
+                    style: const TextStyle(color: AppColors.critical),
+                  ),
                 ),
               ),
             ),
@@ -177,16 +186,23 @@ class _MovementTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   [
-                    if (movement.discipline != null) disciplineLabel(movement.discipline!),
+                    if (movement.discipline != null)
+                      disciplineLabel(movement.discipline!),
                     movementCategoryLabel(movement.category),
                   ].join(' · '),
-                  style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+                  style: const TextStyle(
+                    color: AppColors.onSurfaceMuted,
+                    fontSize: 12.5,
+                  ),
                 ),
                 if (movement.notes.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     movement.notes,
-                    style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.onSurfaceFaint,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ],
@@ -195,7 +211,11 @@ class _MovementTile extends StatelessWidget {
           if (onDelete != null)
             IconButton(
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, color: AppColors.onSurfaceFaint, size: 20),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.onSurfaceFaint,
+                size: 20,
+              ),
             ),
         ],
       ),
@@ -204,7 +224,11 @@ class _MovementTile extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;

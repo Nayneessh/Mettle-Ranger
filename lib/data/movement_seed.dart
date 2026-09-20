@@ -72,7 +72,11 @@ final List<MovementsCompanion> kSeedMovements = [
   _m('Mobility Flow', null, MovementCategory.drill),
 ];
 
-MovementsCompanion _m(String name, Discipline? discipline, MovementCategory category) {
+MovementsCompanion _m(
+  String name,
+  Discipline? discipline,
+  MovementCategory category,
+) {
   return MovementsCompanion.insert(
     name: name,
     discipline: Value(discipline),

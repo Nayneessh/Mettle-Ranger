@@ -38,7 +38,9 @@ class MovementDao extends DatabaseAccessor<MettleDatabase>
   Future<void> resetSeedCatalog(List<MovementsCompanion> seed) async {
     await transaction(() async {
       await (delete(movements)..where((m) => m.isCustom.equals(false))).go();
-      await batch((b) => b.insertAll(movements, seed, mode: InsertMode.insertOrIgnore));
+      await batch(
+        (b) => b.insertAll(movements, seed, mode: InsertMode.insertOrIgnore),
+      );
     });
   }
 }

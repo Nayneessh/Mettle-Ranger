@@ -39,11 +39,25 @@ class SettingsScreen extends ConsumerWidget {
         child: settingsAsync.when(
           data: (settings) => goalsAsync.when(
             data: (goals) => _SettingsBody(settings: settings, goals: goals),
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-            error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            ),
+            error: (e, _) => Center(
+              child: Text(
+                '$e',
+                style: const TextStyle(color: AppColors.critical),
+              ),
+            ),
           ),
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-          error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              '$e',
+              style: const TextStyle(color: AppColors.critical),
+            ),
+          ),
         ),
       ),
     );
@@ -78,13 +92,23 @@ class _SettingsBody extends ConsumerWidget {
             children: [
               const Text(
                 'WEIGHT UNIT',
-                style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 11, letterSpacing: 1),
+                style: TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                ),
               ),
               const SizedBox(height: 8),
               SegmentedButton<UnitSystem>(
                 segments: const [
-                  ButtonSegment(value: UnitSystem.metric, label: Text('Kilograms')),
-                  ButtonSegment(value: UnitSystem.imperial, label: Text('Pounds')),
+                  ButtonSegment(
+                    value: UnitSystem.metric,
+                    label: Text('Kilograms'),
+                  ),
+                  ButtonSegment(
+                    value: UnitSystem.imperial,
+                    label: Text('Pounds'),
+                  ),
                 ],
                 selected: {settings.units},
                 onSelectionChanged: (s) => ref
@@ -94,7 +118,11 @@ class _SettingsBody extends ConsumerWidget {
               const SizedBox(height: 6),
               const Text(
                 'Everything is stored in kilograms whatever you choose here, so switching never rewrites a recorded check-in.',
-                style: TextStyle(color: AppColors.onSurfaceFaint, fontSize: 11.5, height: 1.3),
+                style: TextStyle(
+                  color: AppColors.onSurfaceFaint,
+                  fontSize: 11.5,
+                  height: 1.3,
+                ),
               ),
               const Divider(height: 28),
               _SwitchRow(
@@ -150,14 +178,17 @@ class _SettingsBody extends ConsumerWidget {
               const Divider(height: 1),
               _TargetRow(
                 label: 'Bodyweight',
-                value: goals.targetWeightKg == null ? 'Not set' : '${goals.targetWeightKg!.toStringAsFixed(0)} kg',
+                value: goals.targetWeightKg == null
+                    ? 'Not set'
+                    : '${goals.targetWeightKg!.toStringAsFixed(0)} kg',
                 onTap: () => _editDoubleTarget(
                   context,
                   ref,
                   title: 'Target bodyweight (kg)',
                   initial: goals.targetWeightKg,
-                  onSave: (v) =>
-                      ref.read(goalsDaoProvider).save(GoalsCompanion(targetWeightKg: Value(v))),
+                  onSave: (v) => ref
+                      .read(goalsDaoProvider)
+                      .save(GoalsCompanion(targetWeightKg: Value(v))),
                 ),
               ),
               const Divider(height: 1),
@@ -195,13 +226,20 @@ class _SettingsBody extends ConsumerWidget {
               const Text(
                 'Your training log lives on this phone. Footage never leaves it. '
                 'Cloud backup covers the log only — sign in so it survives a lost phone.',
-                style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5, height: 1.4),
+                style: TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 14),
               if (!client.isConfigured)
                 const Text(
                   'Cloud backup is not configured in this build.',
-                  style: TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12.5),
+                  style: TextStyle(
+                    color: AppColors.onSurfaceFaint,
+                    fontSize: 12.5,
+                  ),
                 )
               else if (signedIn) ...[
                 _DataButton(
@@ -210,8 +248,9 @@ class _SettingsBody extends ConsumerWidget {
                   onTap: () async {
                     await ref.read(backupServiceProvider).backupNow();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(content: Text('Backed up.')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Backed up.')),
+                      );
                     }
                   },
                 ),
@@ -232,7 +271,9 @@ class _SettingsBody extends ConsumerWidget {
                 icon: Icons.download_outlined,
                 label: 'Export every session (CSV)',
                 onTap: () async {
-                  final sessions = await ref.read(sessionDaoProvider).allSessions();
+                  final sessions = await ref
+                      .read(sessionDaoProvider)
+                      .allSessions();
                   await _kExportService.exportSessions(sessions);
                 },
               ),
@@ -241,7 +282,9 @@ class _SettingsBody extends ConsumerWidget {
                 icon: Icons.download_outlined,
                 label: 'Export body data (CSV)',
                 onTap: () async {
-                  final checkIns = await ref.read(bodyCheckInDaoProvider).allCheckIns();
+                  final checkIns = await ref
+                      .read(bodyCheckInDaoProvider)
+                      .allCheckIns();
                   await _kExportService.exportBodyCheckIns(checkIns);
                 },
               ),
@@ -265,7 +308,11 @@ class _SettingsBody extends ConsumerWidget {
                 'Erases every session, routine, movement and check-in on this device and '
                 'puts the app back to how it shipped. Footage on disk is deleted too. '
                 'Back up first if you want to keep any of it.',
-                style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5, height: 1.4),
+                style: TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 12.5,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -307,9 +354,13 @@ class _SettingsBody extends ConsumerWidget {
           style: const TextStyle(color: AppColors.onBackground),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, int.tryParse(controller.text.trim())),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(ctx, int.tryParse(controller.text.trim())),
             child: const Text('Save'),
           ),
         ],
@@ -338,7 +389,10 @@ class _SettingsBody extends ConsumerWidget {
           style: const TextStyle(color: AppColors.onBackground),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
             child: const Text('Save'),
@@ -360,7 +414,10 @@ class _SettingsBody extends ConsumerWidget {
           'This cannot be undone. Every session, routine, movement and check-in on this device will be gone.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.critical),
@@ -394,14 +451,14 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }
 
 class _SwitchRow extends StatelessWidget {
@@ -425,9 +482,21 @@ class _SwitchRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: AppColors.onBackground, fontSize: 15)),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.onBackground,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(sublabel, style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12)),
+              Text(
+                sublabel,
+                style: const TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         ),
@@ -438,7 +507,11 @@ class _SwitchRow extends StatelessWidget {
 }
 
 class _TargetRow extends StatelessWidget {
-  const _TargetRow({required this.label, required this.value, required this.onTap});
+  const _TargetRow({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
 
   final String label;
   final String value;
@@ -453,11 +526,27 @@ class _TargetRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(label, style: const TextStyle(color: AppColors.onBackground, fontSize: 15)),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.onBackground,
+                  fontSize: 15,
+                ),
+              ),
             ),
-            Text(value, style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14)),
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.onSurfaceMuted,
+                fontSize: 14,
+              ),
+            ),
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, color: AppColors.onSurfaceFaint, size: 18),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.onSurfaceFaint,
+              size: 18,
+            ),
           ],
         ),
       ),
@@ -466,7 +555,11 @@ class _TargetRow extends StatelessWidget {
 }
 
 class _DataButton extends StatelessWidget {
-  const _DataButton({required this.icon, required this.label, required this.onTap});
+  const _DataButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;

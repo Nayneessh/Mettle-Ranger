@@ -4,4 +4,4 @@
 /// enum simply has no member for those screens — there is no [AdSlot] value
 /// a Player/Setup/Recap/Clip screen could pass to `BannerAdWidget`, so the
 /// restriction is enforced by the type system, not by convention.
-enum AdSlot { train, footage, progress }
+enum AdSlot { today, footage, progress }

@@ -41,7 +41,8 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
     super.dispose();
   }
 
-  bool get _isValid => _nameController.text.trim().isNotEmpty && _selectedDays.isNotEmpty;
+  bool get _isValid =>
+      _nameController.text.trim().isNotEmpty && _selectedDays.isNotEmpty;
 
   Future<void> _create() async {
     if (!_isValid || _saving) return;
@@ -133,7 +134,8 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
               final selected = _selectedDays.contains(i);
               return InkWell(
                 onTap: () => setState(
-                  () => selected ? _selectedDays.remove(i) : _selectedDays.add(i),
+                  () =>
+                      selected ? _selectedDays.remove(i) : _selectedDays.add(i),
                 ),
                 customBorder: const CircleBorder(),
                 child: Container(
@@ -142,7 +144,9 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: selected ? AppColors.goldWash : AppColors.surfaceRaised,
+                    color: selected
+                        ? AppColors.goldWash
+                        : AppColors.surfaceRaised,
                     border: Border.all(
                       color: selected ? AppColors.gold : AppColors.line,
                     ),
@@ -150,7 +154,9 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
                   child: Text(
                     _kDayLetters[i],
                     style: TextStyle(
-                      color: selected ? AppColors.gold : AppColors.onSurfaceMuted,
+                      color: selected
+                          ? AppColors.gold
+                          : AppColors.onSurfaceMuted,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                     ),
                   ),

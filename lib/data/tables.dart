@@ -253,7 +253,8 @@ class Settings extends Table {
   /// Keeps the screen on for the duration of an active session — off by
   /// default would mean the phone locks mid-round with the timer still
   /// running. On by default, user-editable in Settings.
-  BoolColumn get keepScreenAwake => boolean().withDefault(const Constant(true))();
+  BoolColumn get keepScreenAwake =>
+      boolean().withDefault(const Constant(true))();
 
   /// Null until the user accepts the camera consent notice. The capture
   /// pipeline refuses to start while this is null (spec §7).
@@ -381,7 +382,9 @@ class RoutineDays extends Table {
   ];
 
   @override
-  List<String> get customConstraints => const ['CHECK (weekday BETWEEN 0 AND 6)'];
+  List<String> get customConstraints => const [
+    'CHECK (weekday BETWEEN 0 AND 6)',
+  ];
 }
 
 /// A [Movements] entry placed on a [RoutineDays] day, with its own position

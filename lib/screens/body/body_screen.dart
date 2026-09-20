@@ -25,11 +25,22 @@ class BodyScreen extends ConsumerWidget {
       child: checkInsAsync.when(
         data: (checkIns) => goalsAsync.when(
           data: (goals) => _BodyBody(checkIns: checkIns, goals: goals),
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-          error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              '$e',
+              style: const TextStyle(color: AppColors.critical),
+            ),
+          ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-        error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
+        error: (e, _) => Center(
+          child: Text('$e', style: const TextStyle(color: AppColors.critical)),
+        ),
       ),
     );
   }
@@ -58,21 +69,28 @@ class _BodyBody extends StatelessWidget {
       children: [
         const Text(
           'Body',
-          style: TextStyle(color: AppColors.onBackground, fontSize: 28, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: AppColors.onBackground,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           '${checkIns.length} check-in${checkIns.length == 1 ? '' : 's'} recorded',
-          style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13.5),
+          style: const TextStyle(
+            color: AppColors.onSurfaceMuted,
+            fontSize: 13.5,
+          ),
         ),
         const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
           height: 56,
           child: ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NewCheckInScreen()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const NewCheckInScreen())),
             icon: const Icon(Icons.add),
             label: const Text('LOG A CHECK-IN', style: TextStyle(fontSize: 15)),
           ),
@@ -87,7 +105,8 @@ class _BodyBody extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.line),
           ),
-          child: goals.targetWeightKg == null && goals.targetBodyFatPercent == null
+          child:
+              goals.targetWeightKg == null && goals.targetBodyFatPercent == null
               ? const Text(
                   'No targets set yet. Add them in Settings.',
                   style: TextStyle(color: AppColors.onSurfaceMuted),
@@ -157,12 +176,17 @@ class _BodyBody extends StatelessWidget {
         const _SectionLabel('Check-ins'),
         const SizedBox(height: 10),
         if (checkIns.isEmpty)
-          const Text('No check-ins yet.', style: TextStyle(color: AppColors.onSurfaceMuted))
+          const Text(
+            'No check-ins yet.',
+            style: TextStyle(color: AppColors.onSurfaceMuted),
+          )
         else
-          ...checkIns.map((c) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _CheckInTile(checkIn: c),
-              )),
+          ...checkIns.map(
+            (c) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _CheckInTile(checkIn: c),
+            ),
+          ),
       ],
     );
   }
@@ -183,7 +207,8 @@ class _TargetGauge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = (current != null && target != null && current! > 0 && target! > 0)
+    final progress =
+        (current != null && target != null && current! > 0 && target! > 0)
         ? (current! < target! ? current! / target! : target! / current!)
         : 0.0;
     return Column(
@@ -195,11 +220,20 @@ class _TargetGauge extends StatelessWidget {
           size: 108,
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(color: AppColors.onBackground, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.onBackground,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         if (target != null)
           Text(
             '→ ${target!.toStringAsFixed(0)} $unit',
-            style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12),
+            style: const TextStyle(
+              color: AppColors.onSurfaceFaint,
+              fontSize: 12,
+            ),
           ),
       ],
     );
@@ -213,8 +247,10 @@ class _CheckInTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final parts = <String>[
-      if (checkIn.weightKg != null) '${checkIn.weightKg!.toStringAsFixed(1)} kg',
-      if (checkIn.bodyFatPercent != null) '${checkIn.bodyFatPercent!.toStringAsFixed(1)}% fat',
+      if (checkIn.weightKg != null)
+        '${checkIn.weightKg!.toStringAsFixed(1)} kg',
+      if (checkIn.bodyFatPercent != null)
+        '${checkIn.bodyFatPercent!.toStringAsFixed(1)}% fat',
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -228,18 +264,27 @@ class _CheckInTile extends StatelessWidget {
         children: [
           Text(
             DateFormat('d MMM yyyy').format(checkIn.date),
-            style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+            style: const TextStyle(
+              color: AppColors.onSurfaceMuted,
+              fontSize: 12.5,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             parts.isEmpty ? 'Measurements only' : parts.join(' · '),
-            style: const TextStyle(color: AppColors.onBackground, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: AppColors.onBackground,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (checkIn.notes.trim().isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               checkIn.notes,
-              style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12),
+              style: const TextStyle(
+                color: AppColors.onSurfaceFaint,
+                fontSize: 12,
+              ),
             ),
           ],
         ],
@@ -254,12 +299,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }

@@ -66,7 +66,13 @@ Future<void> showBackupSignInSheet(BuildContext context, WidgetRef ref) {
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 8),
-                  Text(error!, style: const TextStyle(color: AppColors.critical, fontSize: 12.5)),
+                  Text(
+                    error!,
+                    style: const TextStyle(
+                      color: AppColors.critical,
+                      fontSize: 12.5,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 16),
                 SizedBox(
@@ -77,7 +83,9 @@ Future<void> showBackupSignInSheet(BuildContext context, WidgetRef ref) {
                         : () async {
                             final email = controller.text.trim();
                             if (email.isEmpty || !email.contains('@')) {
-                              setSheetState(() => error = 'Enter a valid email address.');
+                              setSheetState(
+                                () => error = 'Enter a valid email address.',
+                              );
                               return;
                             }
                             setSheetState(() {
@@ -85,7 +93,9 @@ Future<void> showBackupSignInSheet(BuildContext context, WidgetRef ref) {
                               error = null;
                             });
                             try {
-                              await ref.read(backupClientProvider).sendSignInLink(email);
+                              await ref
+                                  .read(backupClientProvider)
+                                  .sendSignInLink(email);
                               setSheetState(() => sentTo = email);
                             } catch (e) {
                               setSheetState(() {
@@ -98,7 +108,10 @@ Future<void> showBackupSignInSheet(BuildContext context, WidgetRef ref) {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF241B00)),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Color(0xFF241B00),
+                            ),
                           )
                         : const Text('Send sign-in link'),
                   ),

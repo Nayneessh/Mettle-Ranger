@@ -15,18 +15,21 @@ class BodyCheckInDao extends DatabaseAccessor<MettleDatabase>
   Future<List<BodyCheckInRow>> allCheckIns() =>
       (select(bodyCheckIns)..orderBy([(c) => OrderingTerm.desc(c.date)])).get();
 
-  Stream<List<BodyCheckInRow>> watchAllCheckIns() =>
-      (select(bodyCheckIns)..orderBy([(c) => OrderingTerm.desc(c.date)])).watch();
+  Stream<List<BodyCheckInRow>> watchAllCheckIns() => (select(
+    bodyCheckIns,
+  )..orderBy([(c) => OrderingTerm.desc(c.date)])).watch();
 
-  Future<BodyCheckInRow?> latest() => (select(bodyCheckIns)
-        ..orderBy([(c) => OrderingTerm.desc(c.date)])
-        ..limit(1))
-      .getSingleOrNull();
+  Future<BodyCheckInRow?> latest() =>
+      (select(bodyCheckIns)
+            ..orderBy([(c) => OrderingTerm.desc(c.date)])
+            ..limit(1))
+          .getSingleOrNull();
 
-  Stream<BodyCheckInRow?> watchLatest() => (select(bodyCheckIns)
-        ..orderBy([(c) => OrderingTerm.desc(c.date)])
-        ..limit(1))
-      .watchSingleOrNull();
+  Stream<BodyCheckInRow?> watchLatest() =>
+      (select(bodyCheckIns)
+            ..orderBy([(c) => OrderingTerm.desc(c.date)])
+            ..limit(1))
+          .watchSingleOrNull();
 
   Future<int> addCheckIn(BodyCheckInsCompanion checkIn) =>
       into(bodyCheckIns).insert(checkIn);

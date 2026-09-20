@@ -23,8 +23,12 @@ class HistoryScreen extends ConsumerWidget {
     return SafeArea(
       child: sessionsAsync.when(
         data: (sessions) => _HistoryBody(sessions: sessions),
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-        error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
+        error: (e, _) => Center(
+          child: Text('$e', style: const TextStyle(color: AppColors.critical)),
+        ),
       ),
     );
   }
@@ -63,21 +67,34 @@ class _HistoryBody extends StatelessWidget {
       children: [
         const Text(
           'History',
-          style: TextStyle(color: AppColors.onBackground, fontSize: 28, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: AppColors.onBackground,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           '${sessions.length} session${sessions.length == 1 ? '' : 's'} recorded',
-          style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13.5),
+          style: const TextStyle(
+            color: AppColors.onSurfaceMuted,
+            fontSize: 13.5,
+          ),
         ),
         const SizedBox(height: 20),
         Row(
           children: [
             Expanded(
-              child: StatTile(label: 'Lifetime mat time', value: '$lifetimeMatMinutes', unit: 'min'),
+              child: StatTile(
+                label: 'Lifetime mat time',
+                value: '$lifetimeMatMinutes',
+                unit: 'min',
+              ),
             ),
             const SizedBox(width: 12),
-            Expanded(child: StatTile(label: 'Total rounds', value: '$totalRounds')),
+            Expanded(
+              child: StatTile(label: 'Total rounds', value: '$totalRounds'),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -90,7 +107,9 @@ class _HistoryBody extends StatelessWidget {
               child: _SessionRow(
                 session: s,
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => SessionDetailScreen(sessionId: s.id)),
+                  MaterialPageRoute(
+                    builder: (_) => SessionDetailScreen(sessionId: s.id),
+                  ),
                 ),
               ),
             ),
@@ -125,7 +144,10 @@ class _MonthHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           '${sessions.length} · ${minutes}m',
-          style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 11.5),
+          style: const TextStyle(
+            color: AppColors.onSurfaceFaint,
+            fontSize: 11.5,
+          ),
         ),
       ],
     );
@@ -151,7 +173,12 @@ class _SessionRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border(left: BorderSide(color: colorForDiscipline(session.discipline), width: 3)),
+          border: Border(
+            left: BorderSide(
+              color: colorForDiscipline(session.discipline),
+              width: 3,
+            ),
+          ),
         ),
         child: Row(
           children: [
@@ -159,10 +186,16 @@ class _SessionRow extends StatelessWidget {
               width: 34,
               child: Column(
                 children: [
-                  Text('${session.date.day}', style: AppTextStyles.numeral(fontSize: 18)),
+                  Text(
+                    '${session.date.day}',
+                    style: AppTextStyles.numeral(fontSize: 18),
+                  ),
                   Text(
                     DateFormat('E').format(session.date).toUpperCase(),
-                    style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 10),
+                    style: const TextStyle(
+                      color: AppColors.onSurfaceFaint,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -183,7 +216,10 @@ class _SessionRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '${session.roundsPlanned} rounds · ${matMinutes}m mat time',
-                    style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+                    style: const TextStyle(
+                      color: AppColors.onSurfaceMuted,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ],
               ),
@@ -201,7 +237,10 @@ class _SessionRow extends StatelessWidget {
                 ),
                 Text(
                   '${durationMinutes}m',
-                  style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 11.5),
+                  style: const TextStyle(
+                    color: AppColors.onSurfaceFaint,
+                    fontSize: 11.5,
+                  ),
                 ),
               ],
             ),

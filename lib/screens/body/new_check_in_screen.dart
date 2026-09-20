@@ -54,23 +54,25 @@ class _NewCheckInScreenState extends ConsumerState<NewCheckInScreen> {
   double? _parse(TextEditingController c) => double.tryParse(c.text.trim());
 
   bool get _hasAnyValue => [
-        _weight,
-        _bodyFat,
-        _neck,
-        _chest,
-        _waist,
-        _hips,
-        _leftArm,
-        _rightArm,
-        _forearm,
-        _thigh,
-        _calf,
-      ].any((c) => _parse(c) != null);
+    _weight,
+    _bodyFat,
+    _neck,
+    _chest,
+    _waist,
+    _hips,
+    _leftArm,
+    _rightArm,
+    _forearm,
+    _thigh,
+    _calf,
+  ].any((c) => _parse(c) != null);
 
   Future<void> _save() async {
     if (!_hasAnyValue || _saving) return;
     setState(() => _saving = true);
-    await ref.read(bodyCheckInDaoProvider).addCheckIn(
+    await ref
+        .read(bodyCheckInDaoProvider)
+        .addCheckIn(
           BodyCheckInsCompanion.insert(
             date: DateTime.now(),
             weightKg: Value(_parse(_weight)),
@@ -110,14 +112,27 @@ class _NewCheckInScreenState extends ConsumerState<NewCheckInScreen> {
           children: [
             Text(
               DateFormat('d MMMM yyyy').format(DateTime.now()),
-              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13.5),
+              style: const TextStyle(
+                color: AppColors.onSurfaceMuted,
+                fontSize: 13.5,
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _NumberField(controller: _weight, label: 'Weight (kg)')),
+                Expanded(
+                  child: _NumberField(
+                    controller: _weight,
+                    label: 'Weight (kg)',
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _NumberField(controller: _bodyFat, label: 'Body fat (%)')),
+                Expanded(
+                  child: _NumberField(
+                    controller: _bodyFat,
+                    label: 'Body fat (%)',
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -151,7 +166,10 @@ class _NewCheckInScreenState extends ConsumerState<NewCheckInScreen> {
                           color: Color(0xFF241B00),
                         ),
                       )
-                    : const Text('SAVE CHECK-IN', style: TextStyle(fontSize: 16)),
+                    : const Text(
+                        'SAVE CHECK-IN',
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ),
           ],
@@ -212,12 +230,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }

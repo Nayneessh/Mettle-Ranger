@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../ads/ad_slot.dart';
+import '../../ads/banner_ad_widget.dart';
+import '../../ads/remove_ads_link.dart';
 import '../../app_theme.dart';
 import '../../data/daos/routine_dao.dart';
 import '../../data/database.dart';
@@ -38,14 +41,27 @@ class TodayScreen extends ConsumerWidget {
     return sessionsAsync.when(
       data: (sessions) => goalsAsync.when(
         data: (goals) => activeRoutineAsync.when(
-          data: (routine) => _TodayBody(sessions: sessions, goals: goals, routine: routine),
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-          error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+          data: (routine) =>
+              _TodayBody(sessions: sessions, goals: goals, routine: routine),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              '$e',
+              style: const TextStyle(color: AppColors.critical),
+            ),
+          ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-        error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.gold),
+        ),
+        error: (e, _) => Center(
+          child: Text('$e', style: const TextStyle(color: AppColors.critical)),
+        ),
       ),
-      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: AppColors.gold)),
       error: (error, _) => Center(
         child: Text(
           'Could not load sessions.\n$error',
@@ -57,7 +73,11 @@ class TodayScreen extends ConsumerWidget {
 }
 
 class _TodayBody extends ConsumerStatefulWidget {
-  const _TodayBody({required this.sessions, required this.goals, required this.routine});
+  const _TodayBody({
+    required this.sessions,
+    required this.goals,
+    required this.routine,
+  });
 
   final List<SessionRow> sessions;
   final GoalsRow goals;
@@ -103,24 +123,40 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
   Widget build(BuildContext context) {
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
-    final weekStart = todayMidnight.subtract(Duration(days: todayMidnight.weekday - 1));
+    final weekStart = todayMidnight.subtract(
+      Duration(days: todayMidnight.weekday - 1),
+    );
     final weekEnd = weekStart.add(const Duration(days: 7));
 
     final sessionsThisWeek = widget.sessions.where(
       (s) => !s.date.isBefore(weekStart) && s.date.isBefore(weekEnd),
     );
-    final weekMatSeconds = sessionsThisWeek.fold(0, (total, s) => total + s.matTime);
+    final weekMatSeconds = sessionsThisWeek.fold(
+      0,
+      (total, s) => total + s.matTime,
+    );
     final weekMatMinutes = weekMatSeconds ~/ 60;
     final daysWithSession = sessionsThisWeek
-        .map((s) => DateTime(s.date.year, s.date.month, s.date.day).difference(weekStart).inDays)
+        .map(
+          (s) => DateTime(
+            s.date.year,
+            s.date.month,
+            s.date.day,
+          ).difference(weekStart).inDays,
+        )
         .where((d) => d >= 0 && d < 7)
         .toSet();
 
-    final streak = weeklyStreak(sessionDates: widget.sessions.map((s) => s.date), today: today);
+    final streak = weeklyStreak(
+      sessionDates: widget.sessions.map((s) => s.date),
+      today: today,
+    );
     final lastSession = widget.sessions.isEmpty ? null : widget.sessions.first;
 
     final matGoalMinutes = widget.goals.weeklyMatMinutesTarget;
-    final ringProgress = matGoalMinutes == 0 ? 0.0 : weekMatMinutes / matGoalMinutes;
+    final ringProgress = matGoalMinutes == 0
+        ? 0.0
+        : weekMatMinutes / matGoalMinutes;
 
     return CustomScrollView(
       slivers: [
@@ -148,14 +184,19 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                           ),
                           Text(
                             DateFormat('EEEE d MMMM').format(today),
-                            style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                            style: const TextStyle(
+                              color: AppColors.onSurfaceMuted,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ProgrammeScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProgrammeScreen(),
+                        ),
                       ),
                       icon: const Icon(Icons.calendar_month_outlined),
                       style: IconButton.styleFrom(
@@ -166,7 +207,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     const SizedBox(width: 8),
                     IconButton(
                       onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
                       ),
                       icon: const Icon(Icons.settings_outlined),
                       style: IconButton.styleFrom(
@@ -184,14 +227,22 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                WeekStrip(weekStart: weekStart, daysWithSession: daysWithSession, today: today),
+                WeekStrip(
+                  weekStart: weekStart,
+                  daysWithSession: daysWithSession,
+                  today: today,
+                ),
                 const SizedBox(height: 24),
                 const _SectionLabel('This week'),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
-                      child: StatTile(label: 'Streak', value: '${streak.current}', unit: 'wks'),
+                      child: StatTile(
+                        label: 'Streak',
+                        value: '${streak.current}',
+                        unit: 'wks',
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -203,7 +254,11 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: StatTile(label: 'Mat time', value: '$weekMatMinutes', unit: 'min'),
+                      child: StatTile(
+                        label: 'Mat time',
+                        value: '$weekMatMinutes',
+                        unit: 'min',
+                      ),
                     ),
                   ],
                 ),
@@ -242,9 +297,12 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                               matGoalMinutes == 0
                                   ? 'Set a weekly target in Settings.'
                                   : (weekMatMinutes >= matGoalMinutes
-                                      ? 'Goal met for this week.'
-                                      : "${matGoalMinutes - weekMatMinutes} minutes left to hit this week's goal."),
-                              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+                                        ? 'Goal met for this week.'
+                                        : "${matGoalMinutes - weekMatMinutes} minutes left to hit this week's goal."),
+                              style: const TextStyle(
+                                color: AppColors.onSurfaceMuted,
+                                fontSize: 12.5,
+                              ),
                             ),
                           ],
                         ),
@@ -264,7 +322,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     session: lastSession,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => SessionDetailScreen(sessionId: lastSession.id),
+                        builder: (_) =>
+                            SessionDetailScreen(sessionId: lastSession.id),
                       ),
                     ),
                   )
@@ -276,7 +335,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const MovementsCatalogScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const MovementsCatalogScreen(),
+                          ),
                         ),
                         icon: const Icon(Icons.fitness_center),
                         label: const Text('Exercises'),
@@ -286,7 +347,9 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ProgrammeScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const ProgrammeScreen(),
+                          ),
                         ),
                         icon: const Icon(Icons.calendar_month_outlined),
                         label: const Text('Programme'),
@@ -294,7 +357,17 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
+                Center(
+                  child: Column(
+                    children: const [
+                      BannerAdWidget(slot: AdSlot.today),
+                      SizedBox(height: 4),
+                      RemoveAdsLink(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -336,11 +409,16 @@ class _PriorityCard extends StatelessWidget {
             startLabel: 'START SESSION',
           );
         }
-        final label = plan.day.label.trim().isNotEmpty ? plan.day.label : 'Training day';
-        final movementNames = plan.movements.map((m) => m.movement.name).join(' · ');
+        final label = plan.day.label.trim().isNotEmpty
+            ? plan.day.label
+            : 'Training day';
+        final movementNames = plan.movements
+            .map((m) => m.movement.name)
+            .join(' · ');
         final estMinutes = plan.movements.fold<int>(
           0,
-          (total, m) => total + ((m.placement.targetDurationSeconds ?? 300) ~/ 60),
+          (total, m) =>
+              total + ((m.placement.targetDurationSeconds ?? 300) ~/ 60),
         );
         return _PriorityCardShell(
           badge: 'TODAY · PRIORITY',
@@ -407,7 +485,13 @@ class _PriorityCardShell extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(subtitle, style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13.5)),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppColors.onSurfaceMuted,
+              fontSize: 13.5,
+            ),
+          ),
           if (stats != null) ...[
             const SizedBox(height: 10),
             Text(
@@ -469,12 +553,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }

@@ -39,7 +39,9 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
   Future<void> _save() async {
     if (!_isValid || _saving) return;
     setState(() => _saving = true);
-    await ref.read(movementDaoProvider).addMovement(
+    await ref
+        .read(movementDaoProvider)
+        .addMovement(
           MovementsCompanion.insert(
             name: _nameController.text.trim(),
             discipline: Value(_discipline),
@@ -150,7 +152,10 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
                           color: Color(0xFF241B00),
                         ),
                       )
-                    : const Text('ADD MOVEMENT', style: TextStyle(fontSize: 16)),
+                    : const Text(
+                        'ADD MOVEMENT',
+                        style: TextStyle(fontSize: 16),
+                      ),
               ),
             ),
           ],
@@ -166,12 +171,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }

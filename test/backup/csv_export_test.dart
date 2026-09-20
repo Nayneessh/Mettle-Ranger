@@ -24,7 +24,10 @@ void main() {
 
       final lines = csv.split('\r\n');
       expect(lines, hasLength(2));
-      expect(lines[0], 'date,discipline,gi,rounds_planned,duration_seconds,s_rpe,partner_count,mat_time_seconds,load_score,notes');
+      expect(
+        lines[0],
+        'date,discipline,gi,rounds_planned,duration_seconds,s_rpe,partner_count,mat_time_seconds,load_score,notes',
+      );
       expect(lines[1], contains('bjj'));
       expect(lines[1], contains('175'));
     });

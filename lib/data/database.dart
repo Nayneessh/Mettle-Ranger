@@ -72,7 +72,11 @@ class MettleDatabase extends _$MettleDatabase {
       await m.createAll();
       await _seedSingletons();
       await batch(
-        (b) => b.insertAll(movements, kSeedMovements, mode: InsertMode.insertOrIgnore),
+        (b) => b.insertAll(
+          movements,
+          kSeedMovements,
+          mode: InsertMode.insertOrIgnore,
+        ),
       );
     },
     onUpgrade: (m, from, to) async {
@@ -91,7 +95,11 @@ class MettleDatabase extends _$MettleDatabase {
           goals,
         ).insert(const GoalsCompanion(), mode: InsertMode.insertOrIgnore);
         await batch(
-          (b) => b.insertAll(movements, kSeedMovements, mode: InsertMode.insertOrIgnore),
+          (b) => b.insertAll(
+            movements,
+            kSeedMovements,
+            mode: InsertMode.insertOrIgnore,
+          ),
         );
       }
     },
@@ -123,7 +131,11 @@ class MettleDatabase extends _$MettleDatabase {
       await delete(goals).go();
       await _seedSingletons();
       await batch(
-        (b) => b.insertAll(movements, kSeedMovements, mode: InsertMode.insertOrIgnore),
+        (b) => b.insertAll(
+          movements,
+          kSeedMovements,
+          mode: InsertMode.insertOrIgnore,
+        ),
       );
     });
   }

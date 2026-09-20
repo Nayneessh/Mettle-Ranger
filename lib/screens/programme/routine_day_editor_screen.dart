@@ -33,10 +33,12 @@ class RoutineDayEditorScreen extends ConsumerStatefulWidget {
   final int weekday;
 
   @override
-  ConsumerState<RoutineDayEditorScreen> createState() => _RoutineDayEditorScreenState();
+  ConsumerState<RoutineDayEditorScreen> createState() =>
+      _RoutineDayEditorScreenState();
 }
 
-class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen> {
+class _RoutineDayEditorScreenState
+    extends ConsumerState<RoutineDayEditorScreen> {
   final _labelController = TextEditingController();
   bool _restDay = false;
   int? _dayId;
@@ -57,7 +59,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
   }
 
   Future<void> _load() async {
-    final withDays = await ref.read(routineDaoProvider).routineWithDays(widget.routineId);
+    final withDays = await ref
+        .read(routineDaoProvider)
+        .routineWithDays(widget.routineId);
     final day = withDays?.days[widget.weekday];
     if (!mounted) return;
     setState(() {
@@ -72,7 +76,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
-    await ref.read(routineDaoProvider).upsertDay(
+    await ref
+        .read(routineDaoProvider)
+        .upsertDay(
           RoutineDaysCompanion.insert(
             routine: widget.routineId,
             weekday: widget.weekday,
@@ -85,9 +91,16 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
   }
 
   Future<void> _addMovement() async {
-    final dayId = _dayId ?? await ref.read(routineDaoProvider).upsertDay(
-          RoutineDaysCompanion.insert(routine: widget.routineId, weekday: widget.weekday),
-        );
+    final dayId =
+        _dayId ??
+        await ref
+            .read(routineDaoProvider)
+            .upsertDay(
+              RoutineDaysCompanion.insert(
+                routine: widget.routineId,
+                weekday: widget.weekday,
+              ),
+            );
     if (!mounted) return;
     final picked = await showModalBottomSheet<MovementRow>(
       context: context,
@@ -97,7 +110,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
     );
     if (picked == null) return;
 
-    await ref.read(routineDaoProvider).addMovementToDay(
+    await ref
+        .read(routineDaoProvider)
+        .addMovementToDay(
           RoutineMovementsCompanion.insert(
             routineDay: dayId,
             movement: picked.id,
@@ -109,7 +124,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
   }
 
   Future<void> _removePlacement(RoutineMovementWithDetails placement) async {
-    await ref.read(routineDaoProvider).removeMovementFromDay(placement.placement.id);
+    await ref
+        .read(routineDaoProvider)
+        .removeMovementFromDay(placement.placement.id);
     await _load();
   }
 
@@ -129,7 +146,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
       body: SafeArea(
         minimum: const EdgeInsets.only(bottom: 12),
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 children: [
@@ -150,7 +169,10 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
                     children: [
                       const Text(
                         'Rest day',
-                        style: TextStyle(color: AppColors.onBackground, fontSize: 15),
+                        style: TextStyle(
+                          color: AppColors.onBackground,
+                          fontSize: 15,
+                        ),
                       ),
                       const Spacer(),
                       Switch(
@@ -183,7 +205,10 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
                         (p) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(10),
@@ -194,7 +219,9 @@ class _RoutineDayEditorScreenState extends ConsumerState<RoutineDayEditorScreen>
                                 Expanded(
                                   child: Text(
                                     p.movement.name,
-                                    style: const TextStyle(color: AppColors.onBackground),
+                                    style: const TextStyle(
+                                      color: AppColors.onBackground,
+                                    ),
                                   ),
                                 ),
                                 IconButton(
@@ -235,7 +262,10 @@ class _MovementPickerSheet extends ConsumerWidget {
             itemBuilder: (context, i) {
               final m = movements[i];
               return ListTile(
-                title: Text(m.name, style: const TextStyle(color: AppColors.onBackground)),
+                title: Text(
+                  m.name,
+                  style: const TextStyle(color: AppColors.onBackground),
+                ),
                 subtitle: Text(
                   movementCategoryLabel(m.category),
                   style: const TextStyle(color: AppColors.onSurfaceMuted),
@@ -244,7 +274,9 @@ class _MovementPickerSheet extends ConsumerWidget {
               );
             },
           ),
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
           error: (e, _) => Center(child: Text('$e')),
         ),
       ),
@@ -258,12 +290,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }

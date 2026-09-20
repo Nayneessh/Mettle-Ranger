@@ -43,15 +43,16 @@ class RoutineDao extends DatabaseAccessor<MettleDatabase>
     with _$RoutineDaoMixin {
   RoutineDao(super.db);
 
-  Future<List<RoutineRow>> allRoutines() =>
-      (select(routines)..orderBy([(r) => OrderingTerm.desc(r.createdAt)])).get();
-
-  Stream<List<RoutineRow>> watchAllRoutines() =>
-      (select(routines)..orderBy([(r) => OrderingTerm.desc(r.createdAt)])).watch();
-
-  Future<RoutineRow?> activeRoutine() => (select(
+  Future<List<RoutineRow>> allRoutines() => (select(
     routines,
-  )..where((r) => r.active.equals(true))).getSingleOrNull();
+  )..orderBy([(r) => OrderingTerm.desc(r.createdAt)])).get();
+
+  Stream<List<RoutineRow>> watchAllRoutines() => (select(
+    routines,
+  )..orderBy([(r) => OrderingTerm.desc(r.createdAt)])).watch();
+
+  Future<RoutineRow?> activeRoutine() =>
+      (select(routines)..where((r) => r.active.equals(true))).getSingleOrNull();
 
   Stream<RoutineRow?> watchActiveRoutine() => (select(
     routines,
@@ -64,9 +65,9 @@ class RoutineDao extends DatabaseAccessor<MettleDatabase>
   /// "active" is a single-select, not a multi-select.
   Future<void> setActive(int id) => transaction(() async {
     await update(routines).write(const RoutinesCompanion(active: Value(false)));
-    await (update(
-      routines,
-    )..where((r) => r.id.equals(id))).write(const RoutinesCompanion(active: Value(true)));
+    await (update(routines)..where((r) => r.id.equals(id))).write(
+      const RoutinesCompanion(active: Value(true)),
+    );
   });
 
   Future<int> deleteRoutine(int id) =>
@@ -80,9 +81,11 @@ class RoutineDao extends DatabaseAccessor<MettleDatabase>
   Future<int> upsertDay(RoutineDaysCompanion day) async {
     final routineId = day.routine.value;
     final weekday = day.weekday.value;
-    final existing = await (select(routineDays)..where(
-      (d) => d.routine.equals(routineId) & d.weekday.equals(weekday),
-    )).getSingleOrNull();
+    final existing =
+        await (select(routineDays)..where(
+              (d) => d.routine.equals(routineId) & d.weekday.equals(weekday),
+            ))
+            .getSingleOrNull();
 
     if (existing == null) {
       return into(routineDays).insert(day);
@@ -96,9 +99,8 @@ class RoutineDao extends DatabaseAccessor<MettleDatabase>
   Future<int> addMovementToDay(RoutineMovementsCompanion placement) =>
       into(routineMovements).insert(placement);
 
-  Future<int> removeMovementFromDay(int placementId) => (delete(
-    routineMovements,
-  )..where((m) => m.id.equals(placementId))).go();
+  Future<int> removeMovementFromDay(int placementId) =>
+      (delete(routineMovements)..where((m) => m.id.equals(placementId))).go();
 
   /// The full week for [routineId], Monday first, with every day's movements
   /// resolved. Built from three flat reads rather than a SQL join — routine
@@ -125,9 +127,7 @@ class RoutineDao extends DatabaseAccessor<MettleDatabase>
     final movementIds = placementRows.map((p) => p.movement).toSet();
     final movementRows = movementIds.isEmpty
         ? <MovementRow>[]
-        : await (select(
-            movements,
-          )..where((m) => m.id.isIn(movementIds))).get();
+        : await (select(movements)..where((m) => m.id.isIn(movementIds))).get();
     final movementById = {for (final m in movementRows) m.id: m};
 
     final placementsByDay = <int, List<RoutineMovementWithDetails>>{};

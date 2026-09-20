@@ -8,8 +8,9 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../player/player_screen.dart';
 import '../../widgets/labels.dart' show disciplineLabel, roundModeLabel;
+import '../consent/consent_screen.dart';
+import '../player/player_screen.dart';
 import 'session_draft.dart';
 
 /// Session setup (spec §2, screen 2): discipline, gi, round length/rest/
@@ -43,7 +44,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ref.read(settingsStreamProvider).valueOrNull?.defaultQuality ??
         CaptureQuality.p720;
     final sessions = await ref.read(sessionDaoProvider).allSessions();
-    final discipline = sessions.isNotEmpty ? sessions.first.discipline : Discipline.values.first;
+    final discipline = sessions.isNotEmpty
+        ? sessions.first.discipline
+        : Discipline.values.first;
     if (!mounted) return;
     setState(() {
       _draft = SessionDraft.defaultsFor(discipline, quality: defaultQuality);
@@ -62,6 +65,25 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   Future<void> _begin() async {
     final draft = _draft;
     if (draft == null || !draft.isValid || _starting) return;
+
+    // The capture pipeline refuses to start while consent is unaccepted
+    // (spec §7), and does not check that itself — its own doc comment
+    // requires the caller to gate on it first. Setup, immediately before
+    // Player, is that gate. Declining does not cancel the session: it
+    // downgrades to timing-only, matching ConsentScreen's own contract
+    // that a non-accept "must not start the camera," not "must not train."
+    if (draft.recordEnabled &&
+        !await ref.read(settingsDaoProvider).hasAcceptedConsent()) {
+      if (!mounted) return;
+      final accepted = await Navigator.of(
+        context,
+      ).push<bool>(MaterialPageRoute(builder: (_) => const ConsentScreen()));
+      if (accepted != true) {
+        draft.recordEnabled = false;
+      }
+      if (!mounted) return;
+    }
+
     setState(() => _starting = true);
 
     final sessionDao = ref.read(sessionDaoProvider);
@@ -90,8 +112,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     if (!mounted) return;
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) =>
-            PlayerScreen(sessionId: sessionId, roundIds: roundIds, draft: draft),
+        builder: (_) => PlayerScreen(
+          sessionId: sessionId,
+          roundIds: roundIds,
+          draft: draft,
+        ),
       ),
     );
   }
@@ -162,12 +187,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               label: 'Round length',
               valueLabel: _formatMinSec(draft.roundLengthSeconds),
               onDecrement: () => setState(
-                () => draft.roundLengthSeconds =
-                    (draft.roundLengthSeconds - 30).clamp(30, 1800),
+                () => draft.roundLengthSeconds = (draft.roundLengthSeconds - 30)
+                    .clamp(30, 1800),
               ),
               onIncrement: () => setState(
-                () => draft.roundLengthSeconds =
-                    (draft.roundLengthSeconds + 30).clamp(30, 1800),
+                () => draft.roundLengthSeconds = (draft.roundLengthSeconds + 30)
+                    .clamp(30, 1800),
               ),
             ),
             const SizedBox(height: 12),
@@ -260,7 +285,6 @@ String _formatMinSec(int seconds) {
   final s = seconds % 60;
   return '$m:${s.toString().padLeft(2, '0')}';
 }
-
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);

@@ -38,8 +38,15 @@ class ProgrammeScreen extends ConsumerWidget {
           data: (routine) => routine == null
               ? const _NoRoutineEmptyState()
               : _RoutineWeek(routineId: routine.id, routineName: routine.name),
-          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.gold)),
-          error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: AppColors.critical))),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) => Center(
+            child: Text(
+              '$e',
+              style: const TextStyle(color: AppColors.critical),
+            ),
+          ),
         ),
       ),
     );
@@ -95,7 +102,11 @@ class _NoRoutineEmptyState extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.calendar_month_outlined, color: AppColors.onSurfaceFaint, size: 40),
+            const Icon(
+              Icons.calendar_month_outlined,
+              color: AppColors.onSurfaceFaint,
+              size: 40,
+            ),
             const SizedBox(height: 16),
             const Text(
               'No routine yet. Build a weekly plan so Today knows what to suggest.',
@@ -116,7 +127,9 @@ class _NoRoutineEmptyState extends ConsumerWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const MovementsCatalogScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const MovementsCatalogScreen(),
+                  ),
                 ),
                 icon: const Icon(Icons.fitness_center),
                 label: const Text('Movements'),
@@ -165,7 +178,9 @@ class _RoutineWeekState extends ConsumerState<_RoutineWeek> {
       future: _future,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: AppColors.gold));
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          );
         }
         final withDays = snapshot.data!;
         return ListView(
@@ -215,7 +230,9 @@ class _RoutineWeekState extends ConsumerState<_RoutineWeek> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MovementsCatalogScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const MovementsCatalogScreen(),
+                      ),
                     ),
                     icon: const Icon(Icons.fitness_center),
                     label: const Text('Movements'),
@@ -231,7 +248,11 @@ class _RoutineWeekState extends ConsumerState<_RoutineWeek> {
 }
 
 class _DayCard extends StatelessWidget {
-  const _DayCard({required this.weekday, required this.day, required this.onTap});
+  const _DayCard({
+    required this.weekday,
+    required this.day,
+    required this.onTap,
+  });
 
   final int weekday;
   final RoutineDayWithMovements? day;
@@ -246,8 +267,8 @@ class _DayCard extends StatelessWidget {
     final subtitle = isRest
         ? 'Nothing scheduled'
         : (day!.movements.isEmpty
-            ? 'No movements added yet'
-            : '${day!.movements.length} movement${day!.movements.length == 1 ? '' : 's'}');
+              ? 'No movements added yet'
+              : '${day!.movements.length} movement${day!.movements.length == 1 ? '' : 's'}');
 
     return InkWell(
       onTap: onTap,
@@ -285,7 +306,9 @@ class _DayCard extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      color: isRest ? AppColors.onSurfaceMuted : AppColors.onBackground,
+                      color: isRest
+                          ? AppColors.onSurfaceMuted
+                          : AppColors.onBackground,
                       fontWeight: FontWeight.w600,
                       fontSize: 15.5,
                     ),
@@ -293,12 +316,19 @@ class _DayCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+                    style: const TextStyle(
+                      color: AppColors.onSurfaceMuted,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.onSurfaceFaint, size: 20),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.onSurfaceFaint,
+              size: 20,
+            ),
           ],
         ),
       ),

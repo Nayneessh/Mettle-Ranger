@@ -40,7 +40,9 @@ List<LoadBucket> bucketLoadByWeek({
   final buckets = <LoadBucket>[];
   var cursor = start;
   while (!cursor.isAfter(end)) {
-    buckets.add(LoadBucket(bucketStart: cursor, totalLoad: totals[cursor] ?? 0));
+    buckets.add(
+      LoadBucket(bucketStart: cursor, totalLoad: totals[cursor] ?? 0),
+    );
     cursor = cursor.add(const Duration(days: 7));
   }
   return buckets;
@@ -68,7 +70,9 @@ List<LoadBucket> bucketLoadByMonth({
   final buckets = <LoadBucket>[];
   var cursor = start;
   while (!cursor.isAfter(end)) {
-    buckets.add(LoadBucket(bucketStart: cursor, totalLoad: totals[cursor] ?? 0));
+    buckets.add(
+      LoadBucket(bucketStart: cursor, totalLoad: totals[cursor] ?? 0),
+    );
     cursor = DateTime(cursor.year, cursor.month + 1);
   }
   return buckets;

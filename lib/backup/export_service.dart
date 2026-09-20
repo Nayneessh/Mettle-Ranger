@@ -15,21 +15,27 @@ class ExportService {
   const ExportService();
 
   Future<void> exportSessions(List<SessionRow> sessions) => _shareCsv(
-        fileName: 'mettle_ranger_sessions.csv',
-        contents: sessionsToCsv(sessions),
-      );
+    fileName: 'mettle_ranger_sessions.csv',
+    contents: sessionsToCsv(sessions),
+  );
 
   Future<void> exportBodyCheckIns(List<BodyCheckInRow> checkIns) => _shareCsv(
-        fileName: 'mettle_ranger_body.csv',
-        contents: bodyCheckInsToCsv(checkIns),
-      );
+    fileName: 'mettle_ranger_body.csv',
+    contents: bodyCheckInsToCsv(checkIns),
+  );
 
-  Future<void> _shareCsv({required String fileName, required String contents}) async {
+  Future<void> _shareCsv({
+    required String fileName,
+    required String contents,
+  }) async {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$fileName');
     await file.writeAsString(contents);
     await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path, mimeType: 'text/csv')], fileNameOverrides: [fileName]),
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'text/csv')],
+        fileNameOverrides: [fileName],
+      ),
     );
   }
 }

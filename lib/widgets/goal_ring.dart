@@ -56,10 +56,19 @@ class GoalRing extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(centerValue, style: AppTextStyles.numeral(fontSize: 20, color: AppColors.gold)),
+              Text(
+                centerValue,
+                style: AppTextStyles.numeral(
+                  fontSize: 20,
+                  color: AppColors.gold,
+                ),
+              ),
               Text(
                 centerUnit,
-                style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 11),
+                style: const TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),

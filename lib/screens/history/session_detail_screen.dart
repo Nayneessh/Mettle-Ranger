@@ -19,7 +19,8 @@ class SessionDetailScreen extends ConsumerStatefulWidget {
   final int sessionId;
 
   @override
-  ConsumerState<SessionDetailScreen> createState() => _SessionDetailScreenState();
+  ConsumerState<SessionDetailScreen> createState() =>
+      _SessionDetailScreenState();
 }
 
 class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
@@ -60,20 +61,29 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(session == null ? 'Session' : disciplineLabel(session.discipline))),
+      appBar: AppBar(
+        title: Text(
+          session == null ? 'Session' : disciplineLabel(session.discipline),
+        ),
+      ),
       body: SafeArea(
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.gold))
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              )
             : session == null
-                ? const Center(
-                    child: Text('This session no longer exists.', style: TextStyle(color: AppColors.critical)),
-                  )
-                : _Body(
-                    session: session,
-                    rounds: _rounds,
-                    recording: _recording,
-                    chapterCount: _chapterCount,
-                  ),
+            ? const Center(
+                child: Text(
+                  'This session no longer exists.',
+                  style: TextStyle(color: AppColors.critical),
+                ),
+              )
+            : _Body(
+                session: session,
+                rounds: _rounds,
+                recording: _recording,
+                chapterCount: _chapterCount,
+              ),
       ),
     );
   }
@@ -106,7 +116,10 @@ class _Body extends StatelessWidget {
         ),
         if (session.giFlag && session.discipline == Discipline.bjj) ...[
           const SizedBox(height: 4),
-          const Text('Gi', style: TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12)),
+          const Text(
+            'Gi',
+            style: TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12),
+          ),
         ],
         const SizedBox(height: 20),
         Row(
@@ -127,7 +140,11 @@ class _Body extends StatelessWidget {
               accent: AppColors.liveGreen,
             ),
             const SizedBox(width: 12),
-            _Stat(label: 'Load', value: '${session.loadScore}', accent: AppColors.liveGreen),
+            _Stat(
+              label: 'Load',
+              value: '${session.loadScore}',
+              accent: AppColors.liveGreen,
+            ),
             const SizedBox(width: 12),
             _Stat(label: 'Rounds', value: '${rounds.length}'),
           ],
@@ -138,7 +155,10 @@ class _Body extends StatelessWidget {
         const _SectionLabel('Rounds'),
         const SizedBox(height: 12),
         if (rounds.isEmpty)
-          const Text('No rounds logged.', style: TextStyle(color: AppColors.onSurfaceMuted))
+          const Text(
+            'No rounds logged.',
+            style: TextStyle(color: AppColors.onSurfaceMuted),
+          )
         else
           ...rounds.map((r) => _RoundTile(round: r)),
         if (session.notes.trim().isNotEmpty) ...[
@@ -153,7 +173,13 @@ class _Body extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.line),
             ),
-            child: Text(session.notes, style: const TextStyle(color: AppColors.onBackground, height: 1.4)),
+            child: Text(
+              session.notes,
+              style: const TextStyle(
+                color: AppColors.onBackground,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ],
@@ -180,19 +206,29 @@ class _FootageCard extends StatelessWidget {
       child: rec == null
           ? const Row(
               children: [
-                Icon(Icons.videocam_off_outlined, color: AppColors.onSurfaceFaint),
+                Icon(
+                  Icons.videocam_off_outlined,
+                  color: AppColors.onSurfaceFaint,
+                ),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'This session was not recorded.',
-                    style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13.5),
+                    style: TextStyle(
+                      color: AppColors.onSurfaceMuted,
+                      fontSize: 13.5,
+                    ),
                   ),
                 ),
               ],
             )
           : Row(
               children: [
-                const Icon(Icons.play_circle_fill, color: AppColors.gold, size: 32),
+                const Icon(
+                  Icons.play_circle_fill,
+                  color: AppColors.gold,
+                  size: 32,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -209,14 +245,19 @@ class _FootageCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '$chapterCount chapter${chapterCount == 1 ? '' : 's'}',
-                        style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+                        style: const TextStyle(
+                          color: AppColors.onSurfaceMuted,
+                          fontSize: 12.5,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => ClipReviewScreen(recordingId: rec.id)),
+                    MaterialPageRoute(
+                      builder: (_) => ClipReviewScreen(recordingId: rec.id),
+                    ),
                   ),
                   child: const Text('Watch'),
                 ),
@@ -248,25 +289,41 @@ class _RoundTile extends StatelessWidget {
               width: 28,
               child: Text(
                 '${round.number}',
-                style: AppTextStyles.numeral(fontSize: 16, color: AppColors.gold),
+                style: AppTextStyles.numeral(
+                  fontSize: 16,
+                  color: AppColors.gold,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 roundModeLabel(round.mode),
-                style: const TextStyle(color: AppColors.onBackground, fontWeight: FontWeight.w600, fontSize: 14),
+                style: const TextStyle(
+                  color: AppColors.onBackground,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ),
             if (round.intensity != null) ...[
               Icon(Icons.bolt, size: 13, color: AppColors.onSurfaceFaint),
               const SizedBox(width: 2),
-              Text('${round.intensity}', style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 12)),
+              Text(
+                '${round.intensity}',
+                style: const TextStyle(
+                  color: AppColors.onSurfaceFaint,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(width: 10),
             ],
             Text(
               '$minutes:${seconds.toString().padLeft(2, '0')}',
-              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 12.5),
+              style: const TextStyle(
+                color: AppColors.onSurfaceMuted,
+                fontSize: 12.5,
+              ),
             ),
           ],
         ),
@@ -276,7 +333,12 @@ class _RoundTile extends StatelessWidget {
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value, this.unit, this.accent = AppColors.gold});
+  const _Stat({
+    required this.label,
+    required this.value,
+    this.unit,
+    this.accent = AppColors.gold,
+  });
 
   final String label;
   final String value;
@@ -298,17 +360,30 @@ class _Stat extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: const TextStyle(color: AppColors.onSurfaceFaint, fontSize: 10, letterSpacing: 0.6),
+              style: const TextStyle(
+                color: AppColors.onSurfaceFaint,
+                fontSize: 10,
+                letterSpacing: 0.6,
+              ),
             ),
             const SizedBox(height: 4),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(value, style: AppTextStyles.numeral(fontSize: 20, color: accent)),
+                Text(
+                  value,
+                  style: AppTextStyles.numeral(fontSize: 20, color: accent),
+                ),
                 if (unit != null) ...[
                   const SizedBox(width: 3),
-                  Text(unit!, style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 11)),
+                  Text(
+                    unit!,
+                    style: const TextStyle(
+                      color: AppColors.onSurfaceMuted,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -325,13 +400,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.onSurfaceMuted,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-        ),
-      );
+    text.toUpperCase(),
+    style: const TextStyle(
+      color: AppColors.onSurfaceMuted,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.2,
+    ),
+  );
 }
-

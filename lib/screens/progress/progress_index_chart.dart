@@ -15,10 +15,14 @@ class ProgressIndexChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxLoad = buckets.fold(0, (m, b) => b.totalLoad > m ? b.totalLoad : m);
+    final maxLoad = buckets.fold(
+      0,
+      (m, b) => b.totalLoad > m ? b.totalLoad : m,
+    );
     final chartMax = (maxLoad == 0 ? 100 : maxLoad * 1.2).toDouble();
     final spots = [
-      for (var i = 0; i < buckets.length; i++) FlSpot(i.toDouble(), buckets[i].totalLoad.toDouble()),
+      for (var i = 0; i < buckets.length; i++)
+        FlSpot(i.toDouble(), buckets[i].totalLoad.toDouble()),
     ];
 
     return SizedBox(
@@ -30,7 +34,8 @@ class ProgressIndexChart extends StatelessWidget {
           gridData: FlGridData(
             drawVerticalLine: false,
             horizontalInterval: chartMax / 3,
-            getDrawingHorizontalLine: (_) => const FlLine(color: AppColors.lineSoft, strokeWidth: 1),
+            getDrawingHorizontalLine: (_) =>
+                const FlLine(color: AppColors.lineSoft, strokeWidth: 1),
           ),
           borderData: FlBorderData(show: false),
           titlesData: const FlTitlesData(
@@ -72,7 +77,10 @@ class ProgressIndexChart extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [AppColors.gold.withValues(alpha: 0.25), AppColors.gold.withValues(alpha: 0.0)],
+                  colors: [
+                    AppColors.gold.withValues(alpha: 0.25),
+                    AppColors.gold.withValues(alpha: 0.0),
+                  ],
                 ),
               ),
             ),
