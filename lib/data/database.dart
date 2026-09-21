@@ -9,6 +9,7 @@ import 'daos/recording_dao.dart';
 import 'daos/routine_dao.dart';
 import 'daos/session_dao.dart';
 import 'daos/settings_dao.dart';
+import 'daos/skill_goal_dao.dart';
 import 'movement_seed.dart';
 import 'tables.dart';
 
@@ -36,6 +37,7 @@ const int kBackupSchemaVersion = 1;
     RoutineDays,
     RoutineMovements,
     BodyCheckIns,
+    SkillGoals,
   ],
   daos: [
     SessionDao,
@@ -46,6 +48,7 @@ const int kBackupSchemaVersion = 1;
     MovementDao,
     RoutineDao,
     BodyCheckInDao,
+    SkillGoalDao,
   ],
 )
 class MettleDatabase extends _$MettleDatabase {
@@ -53,7 +56,7 @@ class MettleDatabase extends _$MettleDatabase {
     : super(executor ?? driftDatabase(name: 'mettle_ranger'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   Future<void> _seedSingletons() async {
     // Settings and Goals are singletons; the rows must exist before anything
@@ -102,6 +105,15 @@ class MettleDatabase extends _$MettleDatabase {
           ),
         );
       }
+      if (from < 3) {
+        // v3 (user-requested after using the v2 build): Skill goals. Unlike
+        // v1→v2, this app now has a real installed base on schema v2, so
+        // this branch matters for real — every session/routine/check-in a
+        // user already logged must survive untouched, which pure table
+        // creation guarantees (see the migration test for a build against a
+        // hand-built real v2 database).
+        await m.createTable(skillGoals);
+      }
     },
     beforeOpen: (details) async {
       // Drift does not enable foreign keys by default, and every guarantee
@@ -127,6 +139,7 @@ class MettleDatabase extends _$MettleDatabase {
       await delete(routines).go();
       await delete(movements).go();
       await delete(bodyCheckIns).go();
+      await delete(skillGoals).go();
       await delete(settings).go();
       await delete(goals).go();
       await _seedSingletons();

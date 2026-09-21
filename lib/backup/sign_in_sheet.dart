@@ -25,7 +25,9 @@ Future<void> showBackupSignInSheet(BuildContext context, WidgetRef ref) {
             20,
             20,
             20,
-            20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+            20 +
+                MediaQuery.of(sheetContext).viewInsets.bottom +
+                MediaQuery.of(sheetContext).padding.bottom,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -11,6 +11,7 @@ import '../../data/database.dart';
 import '../../domain/streak_calculator.dart';
 import '../../providers.dart';
 import '../../widgets/goal_ring.dart';
+import '../../widgets/gradient_button.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/week_strip.dart';
 import '../history/session_detail_screen.dart';
@@ -200,7 +201,8 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                       ),
                       icon: const Icon(Icons.calendar_month_outlined),
                       style: IconButton.styleFrom(
-                        backgroundColor: AppColors.surfaceRaised,
+                        backgroundColor: AppColors.nightBlueWash,
+                        foregroundColor: AppColors.nightBlueStrong,
                         shape: const CircleBorder(),
                       ),
                     ),
@@ -504,13 +506,15 @@ class _PriorityCardShell extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed: onStart,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(startLabel, style: const TextStyle(fontSize: 15)),
+          GradientButton(
+            onPressed: onStart,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.play_arrow_rounded),
+                const SizedBox(width: 8),
+                Text(startLabel, style: const TextStyle(fontSize: 15)),
+              ],
             ),
           ),
         ],

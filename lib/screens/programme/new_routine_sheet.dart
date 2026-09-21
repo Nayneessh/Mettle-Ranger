@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
+import '../../widgets/gradient_button.dart';
 
 const _kDayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -73,7 +74,14 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
         left: 20,
         right: 20,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        // Keyboard (viewInsets) and system nav bar (padding) are two
+        // different reserved areas — a sheet sitting above the nav bar
+        // still needs its own clearance from it even with no keyboard up,
+        // which viewInsets alone never accounts for.
+        bottom:
+            MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            24,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -165,22 +173,18 @@ class _NewRoutineSheetState extends ConsumerState<_NewRoutineSheet> {
             }),
           ),
           const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _isValid && !_saving ? _create : null,
-              child: _saving
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Color(0xFF241B00),
-                      ),
-                    )
-                  : const Text('CREATE', style: TextStyle(fontSize: 16)),
-            ),
+          GradientButton(
+            onPressed: _isValid && !_saving ? _create : null,
+            child: _saving
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFF241B00),
+                    ),
+                  )
+                : const Text('CREATE', style: TextStyle(fontSize: 16)),
           ),
         ],
       ),

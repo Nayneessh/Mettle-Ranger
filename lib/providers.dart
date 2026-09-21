@@ -8,6 +8,7 @@ import 'data/daos/recording_dao.dart';
 import 'data/daos/routine_dao.dart';
 import 'data/daos/session_dao.dart';
 import 'data/daos/settings_dao.dart';
+import 'data/daos/skill_goal_dao.dart';
 import 'data/database.dart';
 
 /// The single [MettleDatabase] instance for the app's lifetime.
@@ -52,6 +53,10 @@ final routineDaoProvider = Provider<RoutineDao>(
 
 final bodyCheckInDaoProvider = Provider<BodyCheckInDao>(
   (ref) => ref.watch(databaseProvider).bodyCheckInDao,
+);
+
+final skillGoalDaoProvider = Provider<SkillGoalDao>(
+  (ref) => ref.watch(databaseProvider).skillGoalDao,
 );
 
 /// The live settings row. Read this rather than calling `current()` directly
@@ -105,4 +110,8 @@ final allBodyCheckInsStreamProvider = StreamProvider<List<BodyCheckInRow>>(
 
 final latestBodyCheckInStreamProvider = StreamProvider<BodyCheckInRow?>(
   (ref) => ref.watch(bodyCheckInDaoProvider).watchLatest(),
+);
+
+final allSkillGoalsStreamProvider = StreamProvider<List<SkillGoalRow>>(
+  (ref) => ref.watch(skillGoalDaoProvider).watchAllGoals(),
 );

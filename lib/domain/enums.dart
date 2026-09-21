@@ -23,3 +23,11 @@ enum UnitSystem { metric, imperial }
 /// "strength"/"cardio" split here, because a routine in this app is a week
 /// of training, not a lifting program.
 enum MovementCategory { technique, combo, drill, conditioning, sparring }
+
+/// Where a [SkillGoals] entry stands. The martial-arts equivalent of the
+/// reference app's "lift goals" (a 3-stage weight-progression number this
+/// app has no honest equivalent for, since it doesn't log per-movement reps
+/// or load) — a technique goal here is tracked by status, set by the user
+/// themselves, the same way a coach or a training partner would ask "how's
+/// that going?" rather than by an automated number this app cannot derive.
+enum SkillGoalStatus { notStarted, inProgress, achieved }

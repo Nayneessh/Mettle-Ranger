@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
+import '../../widgets/gradient_button.dart';
 
 /// New check-in (Winter Arc reference, adapted): weight, body fat, and a
 /// block of optional measurements. Every field is optional except the date —
@@ -152,25 +153,18 @@ class _NewCheckInScreenState extends ConsumerState<NewCheckInScreen> {
               ],
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _hasAnyValue && !_saving ? _save : null,
-                child: _saving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Color(0xFF241B00),
-                        ),
-                      )
-                    : const Text(
-                        'SAVE CHECK-IN',
-                        style: TextStyle(fontSize: 16),
+            GradientButton(
+              onPressed: _hasAnyValue && !_saving ? _save : null,
+              child: _saving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Color(0xFF241B00),
                       ),
-              ),
+                    )
+                  : const Text('SAVE CHECK-IN', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),

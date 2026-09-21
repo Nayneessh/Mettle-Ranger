@@ -19,6 +19,20 @@ class MettleRangerApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       home: const _AppRoot(),
+      // Every screen in this app was laid out for a phone-width column.
+      // Rather than rework each one for tablets individually, pin that
+      // column's width everywhere at once and let the ground colour fill
+      // the rest — the same trick a phone-first web layout uses on a wide
+      // viewport, so nothing stretches into unreadable full-bleed rows on
+      // a tablet.
+      builder: (context, child) => Container(
+        color: AppColors.background,
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: child,
+        ),
+      ),
     );
   }
 }

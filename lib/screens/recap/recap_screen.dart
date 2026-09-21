@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
+import '../../widgets/gradient_button.dart';
 import 'trim_on_save.dart';
 
 /// Recap (spec §2, screen 4): sRPE, notes, partner count, trim-on-save,
@@ -183,22 +184,18 @@ class _RecapScreenState extends ConsumerState<RecapScreen> {
               ),
             ],
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Color(0xFF241B00),
-                        ),
-                      )
-                    : const Text('Save', style: TextStyle(fontSize: 16)),
-              ),
+            GradientButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Color(0xFF241B00),
+                      ),
+                    )
+                  : const Text('Save', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),

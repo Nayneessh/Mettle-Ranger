@@ -39,7 +39,7 @@ class GoalRing extends StatelessWidget {
             child: CircularProgressIndicator(
               value: 1,
               strokeWidth: strokeWidth,
-              color: AppColors.line,
+              color: AppColors.nightBlueWash,
             ),
           ),
           SizedBox(

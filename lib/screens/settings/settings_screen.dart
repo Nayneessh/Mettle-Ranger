@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../app_theme.dart';
@@ -15,14 +16,26 @@ import '../../providers.dart';
 
 const _kExportService = ExportService();
 
-/// Settings (new screen): units/behaviour, weekly and body targets, cloud
-/// backup, CSV export, and reset. Adapted from the Winter Arc reference's
-/// own Settings screen — "Weight step" and "Start rest automatically" are
-/// left out (nothing in this app's round-based training maps to a
-/// per-set weight increment or a rest timer separate from the round timer
-/// already built), and "Lift goals" is left out entirely: this app tracks
-/// techniques and rounds, not loaded lifts, so a 3-stage weight-progression
-/// goal has no honest equivalent here.
+String _skillGoalStatusLabel(SkillGoalStatus s) => switch (s) {
+  SkillGoalStatus.notStarted => 'Not started',
+  SkillGoalStatus.inProgress => 'In progress',
+  SkillGoalStatus.achieved => 'Achieved',
+};
+
+Color _skillGoalStatusColor(SkillGoalStatus s) => switch (s) {
+  SkillGoalStatus.notStarted => AppColors.onSurfaceFaint,
+  SkillGoalStatus.inProgress => AppColors.nightBlueStrong,
+  SkillGoalStatus.achieved => AppColors.good,
+};
+
+/// Settings (new screen): units/behaviour, weekly/body targets, skill
+/// goals, cloud backup, CSV export, and reset. Adapted from the Winter Arc
+/// reference's own Settings screen — "Weight step" and "Start rest
+/// automatically" are left out (nothing in this app's round-based training
+/// maps to a per-set weight increment or a rest timer separate from the
+/// round timer already built). "Lift goals" becomes Skill goals: a
+/// technique the user wants to get good at, tracked by status rather than
+/// a weight number this app has no honest way to derive.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -73,6 +86,7 @@ class _SettingsBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final signedIn = ref.watch(signedInStreamProvider).valueOrNull ?? false;
+    final skillGoalsAsync = ref.watch(allSkillGoalsStreamProvider);
     final client = ref.watch(backupClientProvider);
 
     return ListView(
@@ -209,6 +223,64 @@ class _SettingsBody extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 24),
+        const _SectionLabel('Skill goals'),
+        const SizedBox(height: 4),
+        const Text(
+          'A technique you want to get good at — tracked by status, since '
+          'this app logs rounds and mat time, not reps or load.',
+          style: TextStyle(
+            color: AppColors.onSurfaceFaint,
+            fontSize: 12,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 10),
+        skillGoalsAsync.when(
+          data: (skillGoalList) => Column(
+            children: [
+              if (skillGoalList.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: const Text(
+                    'No skill goals yet.',
+                    style: TextStyle(color: AppColors.onSurfaceMuted),
+                  ),
+                )
+              else
+                ...skillGoalList.map(
+                  (g) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _SkillGoalTile(
+                      goal: g,
+                      onTap: () =>
+                          _showSkillGoalDialog(context, ref, existing: g),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showSkillGoalDialog(context, ref),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add a skill goal'),
+                ),
+              ),
+            ],
+          ),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) =>
+              Text('$e', style: const TextStyle(color: AppColors.critical)),
         ),
         const SizedBox(height: 24),
         const _SectionLabel('Your data'),
@@ -442,6 +514,219 @@ class _SettingsBody extends ConsumerWidget {
     if (await dir.exists()) {
       await dir.delete(recursive: true);
     }
+  }
+
+  Future<void> _showSkillGoalDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    SkillGoalRow? existing,
+  }) async {
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    final notesController = TextEditingController(text: existing?.notes ?? '');
+    var targetDate = existing?.targetDate;
+    var status = existing?.status ?? SkillGoalStatus.notStarted;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(existing == null ? 'New skill goal' : 'Edit skill goal'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: existing == null,
+                  style: const TextStyle(color: AppColors.onBackground),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. "Land a spinning back kick"',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  maxLines: 2,
+                  style: const TextStyle(color: AppColors.onBackground),
+                  decoration: const InputDecoration(
+                    hintText: 'Notes (optional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        targetDate == null
+                            ? 'No target date'
+                            : DateFormat('d MMM yyyy').format(targetDate!),
+                        style: const TextStyle(color: AppColors.onSurfaceMuted),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: ctx,
+                          initialDate: targetDate ?? DateTime.now(),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 1),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 3650),
+                          ),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => targetDate = picked);
+                        }
+                      },
+                      child: const Text('Pick date'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: SkillGoalStatus.values
+                      .map(
+                        (s) => ChoiceChip(
+                          label: Text(_skillGoalStatusLabel(s)),
+                          selected: status == s,
+                          onSelected: (_) => setDialogState(() => status = s),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (existing != null)
+              TextButton(
+                onPressed: () async {
+                  await ref.read(skillGoalDaoProvider).deleteGoal(existing.id);
+                  if (ctx.mounted) Navigator.pop(ctx, false);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.critical,
+                ),
+                child: const Text('Delete'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: nameController.text.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) return;
+    final name = nameController.text.trim();
+    if (name.isEmpty) return;
+
+    if (existing == null) {
+      await ref
+          .read(skillGoalDaoProvider)
+          .addGoal(
+            SkillGoalsCompanion.insert(
+              name: name,
+              notes: Value(notesController.text.trim()),
+              targetDate: Value(targetDate),
+              status: Value(status),
+              createdAt: DateTime.now(),
+            ),
+          );
+    } else {
+      await ref
+          .read(skillGoalDaoProvider)
+          .updateGoal(
+            existing.copyWith(
+              name: name,
+              notes: notesController.text.trim(),
+              targetDate: Value(targetDate),
+              status: status,
+            ),
+          );
+    }
+  }
+}
+
+class _SkillGoalTile extends StatelessWidget {
+  const _SkillGoalTile({required this.goal, required this.onTap});
+
+  final SkillGoalRow goal;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    goal.name,
+                    style: const TextStyle(
+                      color: AppColors.onBackground,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (goal.targetDate != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'By ${DateFormat('d MMM yyyy').format(goal.targetDate!)}',
+                      style: const TextStyle(
+                        color: AppColors.onSurfaceFaint,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _skillGoalStatusColor(
+                  goal.status,
+                ).withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _skillGoalStatusLabel(goal.status),
+                style: TextStyle(
+                  color: _skillGoalStatusColor(goal.status),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

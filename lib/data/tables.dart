@@ -463,3 +463,27 @@ class BodyCheckIns extends Table {
     'CHECK (calf_cm IS NULL OR calf_cm > 0)',
   ];
 }
+
+/// A technique/skill the user has set out to get good at — "perfect my
+/// roundhouse kick" — tracked by status rather than a number, since this
+/// app logs rounds and mat time, not per-movement reps or load. Added in
+/// schema v3, after schema v2 had already shipped to a real install, so
+/// unlike the v1→v2 tables this one needs an honest onUpgrade migration
+/// (see `data/database.dart`).
+@DataClassName('SkillGoalRow')
+class SkillGoals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+
+  TextColumn get notes => text().withDefault(const Constant(''))();
+
+  /// Optional — a goal is allowed to be open-ended ("get better at this,"
+  /// no deadline), same as [Goals] never forces a target.
+  DateTimeColumn get targetDate => dateTime().nullable()();
+
+  TextColumn get status =>
+      textEnum<SkillGoalStatus>().withDefault(const Constant('notStarted'))();
+
+  DateTimeColumn get createdAt => dateTime()();
+}

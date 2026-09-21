@@ -6,7 +6,9 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
 import '../../widgets/goal_ring.dart';
+import '../../widgets/gradient_button.dart';
 import '../../widgets/stat_tile.dart';
+import '../settings/settings_screen.dart';
 import 'new_check_in_screen.dart';
 
 /// Body (new tab): weight/body-fat/measurement check-ins. Reverses the
@@ -84,50 +86,82 @@ class _BodyBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const NewCheckInScreen())),
-            icon: const Icon(Icons.add),
-            label: const Text('LOG A CHECK-IN', style: TextStyle(fontSize: 15)),
+        GradientButton(
+          onPressed: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const NewCheckInScreen())),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add),
+              SizedBox(width: 8),
+              Text('LOG A CHECK-IN', style: TextStyle(fontSize: 15)),
+            ],
           ),
         ),
         const SizedBox(height: 24),
         const _SectionLabel('Targets'),
         const SizedBox(height: 10),
         Container(
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.line),
           ),
-          child:
-              goals.targetWeightKg == null && goals.targetBodyFatPercent == null
-              ? const Text(
-                  'No targets set yet. Add them in Settings.',
-                  style: TextStyle(color: AppColors.onSurfaceMuted),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _TargetGauge(
-                      label: 'Bodyweight',
-                      current: latestWeight,
-                      target: goals.targetWeightKg,
-                      unit: 'kg',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child:
+                goals.targetWeightKg == null &&
+                    goals.targetBodyFatPercent == null
+                ? InkWell(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     ),
-                    _TargetGauge(
-                      label: 'Body fat',
-                      current: latestBodyFat,
-                      target: goals.targetBodyFatPercent,
-                      unit: '%',
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline,
+                            color: AppColors.nightBlueStrong,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No targets set yet. Tap to add bodyweight and body-fat targets.',
+                              style: TextStyle(color: AppColors.onSurfaceMuted),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: AppColors.onSurfaceFaint,
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _TargetGauge(
+                          label: 'Bodyweight',
+                          current: latestWeight,
+                          target: goals.targetWeightKg,
+                          unit: 'kg',
+                        ),
+                        _TargetGauge(
+                          label: 'Body fat',
+                          current: latestBodyFat,
+                          target: goals.targetBodyFatPercent,
+                          unit: '%',
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
         ),
         const SizedBox(height: 24),
         const _SectionLabel('Now'),

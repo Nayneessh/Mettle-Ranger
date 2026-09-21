@@ -25,10 +25,28 @@ class AppColors {
 
   static const gold = Color(0xFFE2BC58);
   static const goldStrong = Color(0xFFF0CE72);
+  static const goldDeep = Color(0xFFC79A3A);
   static const goldWash = Color(0xFF2A2312);
+
+  /// The third member of the palette (golden / night green / night blue):
+  /// a secondary accent for elements that would otherwise compete with
+  /// gold for "this is the important one" — icon chips, secondary badges,
+  /// a ring track — never a CTA, gold keeps that job alone.
+  static const nightBlue = Color(0xFF4E7AB5);
+  static const nightBlueStrong = Color(0xFF6E97CE);
+  static const nightBlueWash = Color(0xFF17233A);
 
   static const line = Color(0xFF21402C);
   static const lineSoft = Color(0xFF19301F);
+
+  /// The "shiny/blingy" gold — a diagonal sweep from a bright highlight
+  /// through the base gold to a deeper shade, used on primary CTAs via
+  /// [GradientButton] rather than the flat single-tone Material default.
+  static const goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [goldStrong, gold, goldDeep],
+  );
 
   /// Semantic — separate from the gold accent so a warning never reads as
   /// "the app is drawing attention to something," only "something is wrong."

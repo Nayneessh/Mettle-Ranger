@@ -8,6 +8,7 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
+import '../../widgets/gradient_button.dart';
 import '../../widgets/labels.dart' show disciplineLabel, roundModeLabel;
 import '../consent/consent_screen.dart';
 import '../player/player_screen.dart';
@@ -256,22 +257,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
             ],
             const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: draft.isValid && !_starting ? _begin : null,
-                child: _starting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Color(0xFF241B00),
-                        ),
-                      )
-                    : const Text('Begin', style: TextStyle(fontSize: 16)),
-              ),
+            GradientButton(
+              onPressed: draft.isValid && !_starting ? _begin : null,
+              child: _starting
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Color(0xFF241B00),
+                      ),
+                    )
+                  : const Text('Begin', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
