@@ -36,6 +36,22 @@ android {
         versionName = flutter.versionName
     }
 
+    // Modern AGP packages classes.dex/classes2.dex uncompressed inside the
+    // APK by default (a device-side "faster install/first-launch" trade —
+    // Android can mmap dex directly instead of inflating it) — 11.7MB
+    // stored at 0% compression here, verified via `unzip -v`. Real dex
+    // deflates well (lots of repeated constant-pool strings); forcing the
+    // legacy compressed packaging is a standard, documented AGP setting
+    // (DexPackagingOptions.useLegacyPackaging) that only changes how dex is
+    // stored in the zip, not what's in it — no effect on R8, signing, or
+    // app behavior, just APK size vs. a few milliseconds of first-install
+    // decompression on-device.
+    packaging {
+        dex {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             // Release signing is wired at Sprint 12. The keystore is generated
