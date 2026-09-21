@@ -134,13 +134,9 @@ jobs:
             fi
           done
           flutter build apk --release --split-per-abi --target-platform android-arm64 \
-            --split-debug-info=build/debug-info --obfuscate --verbose \
-            "${DEFINES[@]}" 2>&1 | tee /tmp/release-build.log
+            --split-debug-info=build/debug-info --obfuscate \
+            "${DEFINES[@]}"
           ls -la build/app/outputs/flutter-apk/
-          echo "--- R8 mapping file (proves minification ran) ---"
-          find build -iname "mapping.txt" -exec ls -la {} \; || echo "NO MAPPING FILE FOUND"
-          echo "--- Gradle tasks mentioning minify/shrink/r8 ---"
-          grep -iE "minify|shrink|r8|:app:.*[Rr]elease" /tmp/release-build.log | tail -60 || true
 
       # Actions artifacts live behind Azure Blob Storage, unreachable from
       # some restricted-egress environments; a Release asset is uploaded
