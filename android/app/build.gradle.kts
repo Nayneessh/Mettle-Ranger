@@ -42,6 +42,23 @@ android {
             // locally, kept in a password manager, and injected by CI as a secret.
             // It is never committed. See build spec §6.
             signingConfig = signingConfigs.getByName("debug")
+
+            // R8 code + resource shrinking. `flutter build apk --release` was
+            // documented (CI workflow's own comment) as enabling this, but
+            // nothing here actually turned it on — the two .dex files shipped
+            // completely unshrunk (~11.7MB of AndroidX/CameraX/Guava/SDK
+            // bytecode). CameraX, AndroidX and the RevenueCat/AdMob SDKs all
+            // ship their own consumer ProGuard rules in their AARs, and
+            // Flutter's Gradle plugin injects the engine's own required keep
+            // rules automatically once minification is on — this is the
+            // standard pairing for a release Flutter build, not a
+            // size-target hack.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
