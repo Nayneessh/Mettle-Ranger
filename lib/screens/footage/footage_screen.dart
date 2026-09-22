@@ -13,6 +13,7 @@ import '../../widgets/storage_meter.dart';
 import '../clip/clip_review_screen.dart';
 import '../../widgets/labels.dart' show disciplineLabel;
 import 'clip_tile.dart';
+import 'upload_footage_sheet.dart';
 
 /// Footage (spec §2, screen 5): clip grid, persistent storage meter,
 /// discipline filter chips. Definition of done (spec §10): grid reflects
@@ -39,15 +40,26 @@ class _FootageScreenState extends ConsumerState<FootageScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Text(
-              'Footage',
-              style: TextStyle(
-                color: AppColors.onBackground,
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-              ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 8, 0),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Footage',
+                    style: TextStyle(
+                      color: AppColors.onBackground,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => pickAndUploadFootage(context, ref),
+                  icon: const Icon(Icons.upload_rounded, color: AppColors.gold),
+                  tooltip: 'Upload footage',
+                ),
+              ],
             ),
           ),
           Padding(
@@ -161,7 +173,8 @@ class _Grid extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Text(
-            'No footage yet. Recorded sessions will show up here.',
+            'No footage yet. Recorded sessions show up here — or tap '
+            'upload above to add a video already on your device.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.onSurfaceMuted),
           ),
