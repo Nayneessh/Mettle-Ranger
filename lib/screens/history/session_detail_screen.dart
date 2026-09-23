@@ -6,7 +6,7 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel, roundModeLabel;
+import '../../widgets/labels.dart' show disciplineLabelForKey, roundModeLabel;
 import '../clip/clip_review_screen.dart';
 
 /// Full detail for one session: everything a tap on a session card used to
@@ -63,7 +63,9 @@ class _SessionDetailScreenState extends ConsumerState<SessionDetailScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          session == null ? 'Session' : disciplineLabel(session.discipline),
+          session == null
+              ? 'Session'
+              : disciplineLabelForKey(session.discipline),
         ),
       ),
       body: SafeArea(
@@ -114,7 +116,7 @@ class _Body extends StatelessWidget {
           DateFormat('EEEE, MMM d, yyyy').format(session.date),
           style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 14),
         ),
-        if (session.giFlag && session.discipline == Discipline.bjj) ...[
+        if (session.giFlag && session.discipline == Discipline.bjj.name) ...[
           const SizedBox(height: 4),
           const Text(
             'Gi',

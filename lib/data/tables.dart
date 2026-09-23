@@ -24,7 +24,14 @@ class Sessions extends Table {
   /// When the session happened, not when the row was written.
   DateTimeColumn get date => dateTime()();
 
-  TextColumn get discipline => textEnum<Discipline>()();
+  /// A [Discipline]'s `.name` for a built-in, or a [CustomDisciplines] row's
+  /// own name stored directly for a user-added one — see that table's doc
+  /// comment. Plain text rather than `textEnum<Discipline>()` since schema
+  /// v4: the set of disciplines is no longer closed, so nothing here can be
+  /// a fixed enum column any more. `disciplineLabelForKey`/
+  /// `colorForDisciplineKey` (labels.dart / app_theme.dart) resolve a key
+  /// back to a display label/color without caring which case it is.
+  TextColumn get discipline => text()();
 
   /// Gi or no-gi. Meaningless outside grappling, but cheap to carry and the
   /// user sets it per session rather than per discipline.
@@ -291,8 +298,9 @@ class Goals extends Table {
 
   /// The discipline the goal ring tracks when the user wants one discipline
   /// front and center rather than training as a whole. Null means "all
-  /// disciplines count" — never a forced default, per spec §11.
-  TextColumn get priorityDiscipline => textEnum<Discipline>().nullable()();
+  /// disciplines count" — never a forced default, per spec §11. Same
+  /// built-in-or-custom key as [Sessions.discipline] — see that column.
+  TextColumn get priorityDiscipline => text().nullable()();
 
   /// Body targets. Kept on the same singleton as the weekly training
   /// targets rather than a separate table — the Body screen's "Targets"
@@ -327,8 +335,9 @@ class Movements extends Table {
   TextColumn get name => text().withLength(min: 1, max: 120)();
 
   /// Null means the movement applies across disciplines (e.g. a general
-  /// conditioning drill) rather than belonging to one.
-  TextColumn get discipline => textEnum<Discipline>().nullable()();
+  /// conditioning drill) rather than belonging to one. Same built-in-or-
+  /// custom key as [Sessions.discipline] — see that column.
+  TextColumn get discipline => text().nullable()();
 
   TextColumn get category => textEnum<MovementCategory>()();
 
@@ -486,4 +495,25 @@ class SkillGoals extends Table {
       textEnum<SkillGoalStatus>().withDefault(const Constant('notStarted'))();
 
   DateTimeColumn get createdAt => dateTime()();
+}
+
+/// A martial art the user trains that isn't one of the five built into
+/// [Discipline] — "there needs to be a provision where I can add a new
+/// discipline altogether" (explicit user request; kickboxing, aikido, wushu
+/// named as examples). A discipline here is nothing more than a label and a
+/// filter key everywhere [Sessions.discipline] and its siblings are used, so
+/// a name is all this table needs. Added in schema v4, after v3 had already
+/// shipped to a real install — see `data/database.dart`.
+@DataClassName('CustomDisciplineRow')
+class CustomDisciplines extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 60)();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name},
+  ];
 }

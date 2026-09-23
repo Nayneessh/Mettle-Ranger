@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../widgets/storage_meter.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabelForKey;
 
 /// One tile in the Footage clip grid (spec §2, screen 5).
 class ClipTile extends StatelessWidget {
@@ -56,7 +56,7 @@ class ClipTile extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              disciplineLabel(session.discipline),
+              disciplineLabelForKey(session.discipline),
               style: const TextStyle(
                 color: AppColors.onBackground,
                 fontWeight: FontWeight.w600,

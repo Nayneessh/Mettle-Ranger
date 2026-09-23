@@ -159,222 +159,224 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
         ? 0.0
         : weekMatMinutes / matGoalMinutes;
 
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'METTLE RANGER',
-                            style: TextStyle(
-                              color: AppColors.gold,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Text(
-                            DateFormat('EEEE d MMMM').format(today),
-                            style: const TextStyle(
-                              color: AppColors.onSurfaceMuted,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProgrammeScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.nightBlueWash,
-                        foregroundColor: AppColors.nightBlueStrong,
-                        shape: const CircleBorder(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SettingsScreen(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.settings_outlined),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.surfaceRaised,
-                        shape: const CircleBorder(),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _PriorityCard(
-                  planFuture: _todayPlanFuture,
-                  onStart: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SetupScreen()),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                WeekStrip(
-                  weekStart: weekStart,
-                  daysWithSession: daysWithSession,
-                  today: today,
-                ),
-                const SizedBox(height: 24),
-                const _SectionLabel('This week'),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: StatTile(
-                        label: 'Streak',
-                        value: '${streak.current}',
-                        unit: 'wks',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatTile(
-                        label: 'Sessions',
-                        value: '${sessionsThisWeek.length}',
-                        unit: 'of ${widget.goals.weeklySessionTarget}',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: StatTile(
-                        label: 'Mat time',
-                        value: '$weekMatMinutes',
-                        unit: 'min',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                const _SectionLabel('The priority'),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: Row(
+    return SafeArea(
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GoalRing(
-                        progress: ringProgress,
-                        centerValue: '$weekMatMinutes',
-                        centerUnit: 'of $matGoalMinutes min',
-                      ),
-                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Weekly mat time',
+                              'METTLE RANGER',
                               style: TextStyle(
-                                color: AppColors.onBackground,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                                color: AppColors.gold,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 6),
                             Text(
-                              matGoalMinutes == 0
-                                  ? 'Set a weekly target in Settings.'
-                                  : (weekMatMinutes >= matGoalMinutes
-                                        ? 'Goal met for this week.'
-                                        : "${matGoalMinutes - weekMatMinutes} minutes left to hit this week's goal."),
+                              DateFormat('EEEE d MMMM').format(today),
                               style: const TextStyle(
                                 color: AppColors.onSurfaceMuted,
-                                fontSize: 12.5,
+                                fontSize: 13,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (widget.sessions.length >= 3) ...[
-                  const BackupPromptCard(),
-                  const SizedBox(height: 24),
-                ],
-                const _SectionLabel('Last session'),
-                const SizedBox(height: 10),
-                if (lastSession != null)
-                  LastSessionCard(
-                    session: lastSession,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            SessionDetailScreen(sessionId: lastSession.id),
-                      ),
-                    ),
-                  )
-                else
-                  const _EmptyLastSession(),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const MovementsCatalogScreen(),
-                          ),
-                        ),
-                        icon: const Icon(Icons.fitness_center),
-                        label: const Text('Exercises'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
+                      IconButton(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const ProgrammeScreen(),
                           ),
                         ),
                         icon: const Icon(Icons.calendar_month_outlined),
-                        label: const Text('Programme'),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.nightBlueWash,
+                          foregroundColor: AppColors.nightBlueStrong,
+                          shape: const CircleBorder(),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                Center(
-                  child: Column(
-                    children: const [
-                      BannerAdWidget(slot: AdSlot.today),
-                      SizedBox(height: 4),
-                      RemoveAdsLink(),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.settings_outlined),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.surfaceRaised,
+                          shape: const CircleBorder(),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
+                  const SizedBox(height: 20),
+                  _PriorityCard(
+                    planFuture: _todayPlanFuture,
+                    onStart: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SetupScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  WeekStrip(
+                    weekStart: weekStart,
+                    daysWithSession: daysWithSession,
+                    today: today,
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel('This week'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatTile(
+                          label: 'Streak',
+                          value: '${streak.current}',
+                          unit: 'wks',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatTile(
+                          label: 'Sessions',
+                          value: '${sessionsThisWeek.length}',
+                          unit: 'of ${widget.goals.weeklySessionTarget}',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatTile(
+                          label: 'Mat time',
+                          value: '$weekMatMinutes',
+                          unit: 'min',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel('The priority'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.line),
+                    ),
+                    child: Row(
+                      children: [
+                        GoalRing(
+                          progress: ringProgress,
+                          centerValue: '$weekMatMinutes',
+                          centerUnit: 'of $matGoalMinutes min',
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Weekly mat time',
+                                style: TextStyle(
+                                  color: AppColors.onBackground,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                matGoalMinutes == 0
+                                    ? 'Set a weekly target in Settings.'
+                                    : (weekMatMinutes >= matGoalMinutes
+                                          ? 'Goal met for this week.'
+                                          : "${matGoalMinutes - weekMatMinutes} minutes left to hit this week's goal."),
+                                style: const TextStyle(
+                                  color: AppColors.onSurfaceMuted,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.sessions.length >= 3) ...[
+                    const BackupPromptCard(),
+                    const SizedBox(height: 24),
+                  ],
+                  const _SectionLabel('Last session'),
+                  const SizedBox(height: 10),
+                  if (lastSession != null)
+                    LastSessionCard(
+                      session: lastSession,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              SessionDetailScreen(sessionId: lastSession.id),
+                        ),
+                      ),
+                    )
+                  else
+                    const _EmptyLastSession(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MovementsCatalogScreen(),
+                            ),
+                          ),
+                          icon: const Icon(Icons.fitness_center),
+                          label: const Text('Exercises'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ProgrammeScreen(),
+                            ),
+                          ),
+                          icon: const Icon(Icons.calendar_month_outlined),
+                          label: const Text('Programme'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  Center(
+                    child: Column(
+                      children: const [
+                        BannerAdWidget(slot: AdSlot.today),
+                        SizedBox(height: 4),
+                        RemoveAdsLink(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -10,7 +10,7 @@ void main() {
         SessionRow(
           id: 1,
           date: DateTime.utc(2026, 9, 18, 19, 30),
-          discipline: Discipline.bjj,
+          discipline: Discipline.bjj.name,
           giFlag: true,
           roundsPlanned: 5,
           duration: 3600,
@@ -37,7 +37,7 @@ void main() {
         SessionRow(
           id: 1,
           date: DateTime.utc(2026, 9, 18),
-          discipline: Discipline.boxing,
+          discipline: Discipline.boxing.name,
           giFlag: false,
           roundsPlanned: 3,
           duration: 900,

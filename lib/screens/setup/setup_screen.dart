@@ -47,14 +47,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final sessions = await ref.read(sessionDaoProvider).allSessions();
     final discipline = sessions.isNotEmpty
         ? sessions.first.discipline
-        : Discipline.values.first;
+        : Discipline.values.first.name;
     if (!mounted) return;
     setState(() {
       _draft = SessionDraft.defaultsFor(discipline, quality: defaultQuality);
     });
   }
 
-  void _setDiscipline(Discipline d) {
+  void _setDiscipline(String d) {
     final current = _draft;
     if (current == null) return;
     setState(() {
@@ -131,6 +131,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
       );
     }
+    final customDisciplines =
+        ref.watch(allCustomDisciplinesStreamProvider).valueOrNull ?? const [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -148,19 +150,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: Discipline.values.map((d) {
-                final selected = d == draft.discipline;
-                return ChoiceChip(
-                  label: Text(disciplineLabel(d)),
-                  selected: selected,
-                  onSelected: (_) => _setDiscipline(d),
-                );
-              }).toList(),
+              children: [
+                ...Discipline.values.map((d) {
+                  final key = d.name;
+                  return ChoiceChip(
+                    label: Text(disciplineLabel(d)),
+                    selected: key == draft.discipline,
+                    onSelected: (_) => _setDiscipline(key),
+                  );
+                }),
+                ...customDisciplines.map(
+                  (c) => ChoiceChip(
+                    label: Text(c.name),
+                    selected: c.name == draft.discipline,
+                    onSelected: (_) => _setDiscipline(c.name),
+                  ),
+                ),
+              ],
             ),
             // Gi only means anything for BJJ — showing it for every
             // discipline was what made the app read as BJJ-first even
             // though it welcomes every martial art equally.
-            if (draft.discipline == Discipline.bjj) ...[
+            if (draft.discipline == Discipline.bjj.name) ...[
               const SizedBox(height: 24),
               _SwitchRow(
                 label: 'Gi',

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/daos/body_check_in_dao.dart';
 import 'data/daos/chapter_dao.dart';
+import 'data/daos/custom_discipline_dao.dart';
 import 'data/daos/goals_dao.dart';
 import 'data/daos/movement_dao.dart';
 import 'data/daos/recording_dao.dart';
@@ -57,6 +58,10 @@ final bodyCheckInDaoProvider = Provider<BodyCheckInDao>(
 
 final skillGoalDaoProvider = Provider<SkillGoalDao>(
   (ref) => ref.watch(databaseProvider).skillGoalDao,
+);
+
+final customDisciplineDaoProvider = Provider<CustomDisciplineDao>(
+  (ref) => ref.watch(databaseProvider).customDisciplineDao,
 );
 
 /// The live settings row. Read this rather than calling `current()` directly
@@ -115,3 +120,8 @@ final latestBodyCheckInStreamProvider = StreamProvider<BodyCheckInRow?>(
 final allSkillGoalsStreamProvider = StreamProvider<List<SkillGoalRow>>(
   (ref) => ref.watch(skillGoalDaoProvider).watchAllGoals(),
 );
+
+final allCustomDisciplinesStreamProvider =
+    StreamProvider<List<CustomDisciplineRow>>(
+      (ref) => ref.watch(customDisciplineDaoProvider).watchAllDisciplines(),
+    );

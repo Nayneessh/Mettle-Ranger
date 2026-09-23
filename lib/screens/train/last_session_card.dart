@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabelForKey;
 
 /// The Train screen's "last session" card (spec §2, screen 1) — the most
 /// recent entry in the log, always real data, never a placeholder number.
@@ -39,7 +39,7 @@ class LastSessionCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                disciplineLabel(session.discipline).characters.first,
+                disciplineLabelForKey(session.discipline).characters.first,
                 style: const TextStyle(
                   color: AppColors.goldStrong,
                   fontWeight: FontWeight.w700,
@@ -53,7 +53,7 @@ class LastSessionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    disciplineLabel(session.discipline),
+                    disciplineLabelForKey(session.discipline),
                     style: const TextStyle(
                       color: AppColors.onBackground,
                       fontWeight: FontWeight.w600,

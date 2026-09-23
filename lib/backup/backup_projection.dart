@@ -23,7 +23,7 @@ Map<String, Object?> sessionToBackupJson(SessionRow session) => {
   'v': kBackupSchemaVersion,
   'id': session.id,
   'date': session.date.toUtc().toIso8601String(),
-  'discipline': session.discipline.name,
+  'discipline': session.discipline,
   'gi_flag': session.giFlag,
   'rounds_planned': session.roundsPlanned,
   'duration': session.duration,

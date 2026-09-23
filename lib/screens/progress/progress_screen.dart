@@ -10,7 +10,7 @@ import '../../domain/enums.dart';
 import '../../domain/load_calculator.dart' as calc;
 import '../../domain/progress_index.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabelForKey;
 import '../../widgets/segmented_proportion_bar.dart';
 import '../../widgets/stat_tile.dart';
 import 'consistency_heatmap.dart';
@@ -164,8 +164,8 @@ class _ProgressBodyState extends State<_ProgressBody> {
       roundModes: rangedRounds.map((r) => r.mode),
     );
 
-    final matTimeByDiscipline = <Discipline, int>{
-      for (final d in Discipline.values) d: 0,
+    final matTimeByDiscipline = <String, int>{
+      for (final d in Discipline.values) d.name: 0,
     };
     final sessionCountByDay = <DateTime, int>{};
     for (final s in rangedSessions) {
@@ -320,11 +320,11 @@ class _ProgressBodyState extends State<_ProgressBody> {
         const SizedBox(height: 12),
         SegmentedProportionBar(
           segments: [
-            for (final d in Discipline.values)
+            for (final key in matTimeByDiscipline.keys)
               ProportionSegment(
-                label: disciplineLabel(d),
-                value: (matTimeByDiscipline[d] ?? 0).toDouble(),
-                color: colorForDiscipline(d),
+                label: disciplineLabelForKey(key),
+                value: (matTimeByDiscipline[key] ?? 0).toDouble(),
+                color: colorForDisciplineKey(key),
               ),
           ],
         ),

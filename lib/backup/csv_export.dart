@@ -37,7 +37,7 @@ String sessionsToCsv(List<SessionRow> sessions) {
     lines.add(
       _csvRow([
         s.date.toIso8601String(),
-        s.discipline.name,
+        s.discipline,
         s.giFlag,
         s.roundsPlanned,
         s.duration,

@@ -70,6 +70,18 @@ class AppColors {
     Color(0xFF5B8DBE), // mma
     Color(0xFF9575B5), // wrestling
   ];
+
+  /// Colors for a user-added custom discipline, which has no fixed index
+  /// the way [disciplineColors] does — picked deterministically from the
+  /// name (see [colorForDisciplineKey]) so the same custom discipline keeps
+  /// the same color across app runs without a table to persist an
+  /// assignment in. Chosen to sit visually apart from [disciplineColors]
+  /// rather than duplicate one of its hues.
+  static const customDisciplineColors = [
+    Color(0xFF4FB0A6),
+    Color(0xFFC97B94),
+    Color(0xFFA98B5D),
+  ];
 }
 
 /// Anton is reserved for numerals people read at a glance mid-round: the
@@ -98,6 +110,17 @@ class AppTextStyles {
 }
 
 Color colorForDiscipline(Discipline d) => AppColors.disciplineColors[d.index];
+
+/// The key-based counterpart to [colorForDiscipline] — resolves a stored
+/// discipline key (see `disciplineLabelForKey` in widgets/labels.dart) to a
+/// color whether it's a built-in or a user-added custom discipline.
+Color colorForDisciplineKey(String key) {
+  for (final d in Discipline.values) {
+    if (d.name == key) return AppColors.disciplineColors[d.index];
+  }
+  final index = key.hashCode.abs() % AppColors.customDisciplineColors.length;
+  return AppColors.customDisciplineColors[index];
+}
 
 ThemeData buildAppTheme() {
   final base = ThemeData(

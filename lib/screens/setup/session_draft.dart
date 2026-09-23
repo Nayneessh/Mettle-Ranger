@@ -18,15 +18,22 @@ class SessionDraft {
 
   /// A sensible starting point per discipline — grappling defaults to a
   /// 5-minute round, striking to 3, matching how each is actually trained.
+  /// [discipline] is a stored discipline key: a built-in [Discipline]'s
+  /// `.name`, or a custom discipline's own name — see
+  /// `Sessions.discipline` in data/tables.dart. A custom discipline gets
+  /// the grappling-style defaults; nothing here can know whether a
+  /// user-added discipline is striking or grappling, and the fields are
+  /// all editable in Setup regardless.
   factory SessionDraft.defaultsFor(
-    Discipline discipline, {
+    String discipline, {
     required CaptureQuality quality,
   }) {
     final striking =
-        discipline == Discipline.boxing || discipline == Discipline.muayThai;
+        discipline == Discipline.boxing.name ||
+        discipline == Discipline.muayThai.name;
     return SessionDraft(
       discipline: discipline,
-      giFlag: discipline == Discipline.bjj,
+      giFlag: discipline == Discipline.bjj.name,
       roundLengthSeconds: striking ? 180 : 300,
       restLengthSeconds: 60,
       roundCount: 5,
@@ -36,7 +43,7 @@ class SessionDraft {
     );
   }
 
-  Discipline discipline;
+  String discipline;
   bool giFlag;
   int roundLengthSeconds;
   int restLengthSeconds;

@@ -3,6 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 
 import 'daos/body_check_in_dao.dart';
 import 'daos/chapter_dao.dart';
+import 'daos/custom_discipline_dao.dart';
 import 'daos/goals_dao.dart';
 import 'daos/movement_dao.dart';
 import 'daos/recording_dao.dart';
@@ -38,6 +39,7 @@ const int kBackupSchemaVersion = 1;
     RoutineMovements,
     BodyCheckIns,
     SkillGoals,
+    CustomDisciplines,
   ],
   daos: [
     SessionDao,
@@ -49,6 +51,7 @@ const int kBackupSchemaVersion = 1;
     RoutineDao,
     BodyCheckInDao,
     SkillGoalDao,
+    CustomDisciplineDao,
   ],
 )
 class MettleDatabase extends _$MettleDatabase {
@@ -56,7 +59,7 @@ class MettleDatabase extends _$MettleDatabase {
     : super(executor ?? driftDatabase(name: 'mettle_ranger'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   Future<void> _seedSingletons() async {
     // Settings and Goals are singletons; the rows must exist before anything
@@ -114,6 +117,20 @@ class MettleDatabase extends _$MettleDatabase {
         // hand-built real v2 database).
         await m.createTable(skillGoals);
       }
+      if (from < 4) {
+        // v4 (user-requested after using the v3 build): custom disciplines,
+        // so the discipline list is no longer closed to the five built into
+        // [Discipline]. Sessions.discipline, Movements.discipline and
+        // Goals.priorityDiscipline all drop their `textEnum<Discipline>()`
+        // converter for plain text in tables.dart, but that changes only
+        // how the *Dart* side decodes the column — none of the three ever
+        // had a SQL-level CHECK restricting which strings they'd hold (the
+        // enum was enforced by the converter, not the schema), so every
+        // discipline value already on disk stays exactly as valid as it was
+        // before. Nothing to migrate for them; only the new table is real
+        // DDL here.
+        await m.createTable(customDisciplines);
+      }
     },
     beforeOpen: (details) async {
       // Drift does not enable foreign keys by default, and every guarantee
@@ -140,6 +157,7 @@ class MettleDatabase extends _$MettleDatabase {
       await delete(movements).go();
       await delete(bodyCheckIns).go();
       await delete(skillGoals).go();
+      await delete(customDisciplines).go();
       await delete(settings).go();
       await delete(goals).go();
       await _seedSingletons();

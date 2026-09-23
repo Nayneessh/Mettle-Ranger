@@ -27,7 +27,7 @@ class FootageScreen extends ConsumerStatefulWidget {
 }
 
 class _FootageScreenState extends ConsumerState<FootageScreen> {
-  Discipline? _filter;
+  String? _filter;
 
   @override
   Widget build(BuildContext context) {
@@ -87,16 +87,31 @@ class _FootageScreenState extends ConsumerState<FootageScreen> {
                     onTap: () => setState(() => _filter = null),
                   ),
                   const SizedBox(width: 8),
-                  ...Discipline.values.map(
-                    (d) => Padding(
+                  ...Discipline.values.map((d) {
+                    final key = d.name;
+                    return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: _FilterChip(
                         label: disciplineLabel(d),
-                        selected: _filter == d,
-                        onTap: () => setState(() => _filter = d),
+                        selected: _filter == key,
+                        onTap: () => setState(() => _filter = key),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
+                  ...(ref
+                              .watch(allCustomDisciplinesStreamProvider)
+                              .valueOrNull ??
+                          const [])
+                      .map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _FilterChip(
+                            label: c.name,
+                            selected: _filter == c.name,
+                            onTap: () => setState(() => _filter = c.name),
+                          ),
+                        ),
+                      ),
                 ],
               ),
             ),
@@ -157,7 +172,7 @@ class _Grid extends StatelessWidget {
 
   final List<RecordingRow> recordings;
   final List<SessionRow> sessions;
-  final Discipline? filter;
+  final String? filter;
 
   @override
   Widget build(BuildContext context) {

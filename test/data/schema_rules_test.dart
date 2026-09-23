@@ -29,7 +29,7 @@ void main() {
   }) => db.sessionDao.createSession(
     SessionsCompanion.insert(
       date: date ?? DateTime(2026, 9, 18, 19, 30),
-      discipline: discipline,
+      discipline: discipline.name,
       roundsPlanned: 5,
     ),
   );
@@ -47,9 +47,9 @@ void main() {
       );
 
   group('migrations', () {
-    test('an empty database opens at schema version 3', () async {
+    test('an empty database opens at schema version 4', () async {
       await db.customSelect('SELECT 1').get();
-      expect(db.schemaVersion, 3);
+      expect(db.schemaVersion, 4);
     });
 
     test('creating the database seeds exactly one settings row', () async {
@@ -429,6 +429,231 @@ void main() {
         expect(skillGoals.single.status, SkillGoalStatus.notStarted);
       },
     );
+
+    test('upgrading a real v3 database adds custom disciplines without '
+        'losing data', () async {
+      final dir = await Directory.systemTemp.createTemp(
+        'mettle_migration_v3_test',
+      );
+      addTearDown(() => dir.delete(recursive: true));
+      final path = p.join(dir.path, 'v3.sqlite');
+
+      // The v2 schema above, plus the skill_goals table v2→v3 added —
+      // this app has a real installed base on v3, so this test guards a
+      // live upgrade path rather than a hypothetical one.
+      final raw = sqlite3.sqlite3.open(path);
+      raw.execute('''
+          CREATE TABLE sessions (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            date INTEGER NOT NULL,
+            discipline TEXT NOT NULL,
+            gi_flag INTEGER NOT NULL DEFAULT 0,
+            rounds_planned INTEGER NOT NULL,
+            duration INTEGER NOT NULL DEFAULT 0,
+            s_rpe INTEGER NULL,
+            partner_count INTEGER NOT NULL DEFAULT 0,
+            notes TEXT NOT NULL DEFAULT '',
+            mat_time INTEGER NOT NULL DEFAULT 0,
+            load_score INTEGER NOT NULL DEFAULT 0,
+            CHECK (rounds_planned >= 0),
+            CHECK (duration >= 0),
+            CHECK (partner_count >= 0),
+            CHECK (mat_time >= 0),
+            CHECK (load_score >= 0),
+            CHECK (s_rpe IS NULL OR s_rpe BETWEEN 1 AND 10)
+          );
+          CREATE TABLE rounds (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            session INTEGER NOT NULL REFERENCES sessions (id) ON DELETE CASCADE,
+            number INTEGER NOT NULL,
+            duration INTEGER NOT NULL,
+            mode TEXT NOT NULL,
+            intensity INTEGER NULL,
+            UNIQUE (session, number),
+            CHECK (number > 0),
+            CHECK (duration >= 0),
+            CHECK (intensity IS NULL OR intensity BETWEEN 1 AND 10)
+          );
+          CREATE TABLE recordings (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            session INTEGER NOT NULL UNIQUE REFERENCES sessions (id) ON DELETE CASCADE,
+            local_path TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            size_bytes INTEGER NOT NULL,
+            resolution TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            trimmed_flag INTEGER NOT NULL DEFAULT 0,
+            CHECK (duration >= 0),
+            CHECK (size_bytes >= 0)
+          );
+          CREATE TABLE segments (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            recording INTEGER NOT NULL REFERENCES recordings (id) ON DELETE CASCADE,
+            segment_index INTEGER NOT NULL,
+            file_name TEXT NOT NULL,
+            start_offset_ms INTEGER NOT NULL,
+            duration_ms INTEGER NOT NULL,
+            size_bytes INTEGER NOT NULL,
+            UNIQUE (recording, segment_index),
+            CHECK (segment_index >= 0),
+            CHECK (start_offset_ms >= 0),
+            CHECK (duration_ms >= 0),
+            CHECK (size_bytes >= 0)
+          );
+          CREATE TABLE chapters (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            recording INTEGER NOT NULL REFERENCES recordings (id) ON DELETE CASCADE,
+            round_ref INTEGER NULL REFERENCES rounds (id) ON DELETE CASCADE,
+            start_offset INTEGER NOT NULL,
+            end_offset INTEGER NOT NULL,
+            flagged INTEGER NOT NULL DEFAULT 0,
+            CHECK (start_offset >= 0),
+            CHECK (end_offset >= start_offset)
+          );
+          CREATE TABLE settings (
+            id INTEGER NOT NULL DEFAULT 1,
+            units TEXT NOT NULL DEFAULT 'metric',
+            default_round_length INTEGER NOT NULL DEFAULT 300,
+            default_quality TEXT NOT NULL DEFAULT 'p720',
+            retention_days INTEGER NOT NULL DEFAULT 30,
+            ads_removed INTEGER NOT NULL DEFAULT 0,
+            keep_screen_awake INTEGER NOT NULL DEFAULT 1,
+            consent_accepted_at INTEGER NULL,
+            PRIMARY KEY (id),
+            CHECK (id = 1),
+            CHECK (default_round_length > 0),
+            CHECK (retention_days > 0)
+          );
+          CREATE TABLE goals (
+            id INTEGER NOT NULL DEFAULT 1,
+            weekly_session_target INTEGER NOT NULL DEFAULT 3,
+            weekly_mat_minutes_target INTEGER NOT NULL DEFAULT 180,
+            priority_discipline TEXT NULL,
+            target_weight_kg REAL NULL,
+            target_body_fat_percent REAL NULL,
+            PRIMARY KEY (id),
+            CHECK (id = 1),
+            CHECK (weekly_session_target > 0),
+            CHECK (weekly_mat_minutes_target > 0),
+            CHECK (target_weight_kg IS NULL OR target_weight_kg > 0),
+            CHECK (target_body_fat_percent IS NULL OR target_body_fat_percent BETWEEN 0 AND 100)
+          );
+          CREATE TABLE movements (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            discipline TEXT NULL,
+            category TEXT NOT NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            is_custom INTEGER NOT NULL DEFAULT 1,
+            UNIQUE (name, discipline)
+          );
+          CREATE TABLE routines (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL
+          );
+          CREATE TABLE routine_days (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            routine INTEGER NOT NULL REFERENCES routines (id) ON DELETE CASCADE,
+            weekday INTEGER NOT NULL,
+            label TEXT NOT NULL DEFAULT '',
+            rest_day INTEGER NOT NULL DEFAULT 0,
+            UNIQUE (routine, weekday),
+            CHECK (weekday BETWEEN 0 AND 6)
+          );
+          CREATE TABLE routine_movements (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            routine_day INTEGER NOT NULL REFERENCES routine_days (id) ON DELETE CASCADE,
+            movement INTEGER NOT NULL REFERENCES movements (id) ON DELETE CASCADE,
+            position INTEGER NOT NULL,
+            target_rounds INTEGER NULL,
+            target_duration_seconds INTEGER NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            CHECK (position >= 0),
+            CHECK (target_rounds IS NULL OR target_rounds > 0),
+            CHECK (target_duration_seconds IS NULL OR target_duration_seconds > 0)
+          );
+          CREATE TABLE body_check_ins (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            date INTEGER NOT NULL,
+            weight_kg REAL NULL,
+            body_fat_percent REAL NULL,
+            neck_cm REAL NULL,
+            chest_cm REAL NULL,
+            waist_cm REAL NULL,
+            hips_cm REAL NULL,
+            left_arm_cm REAL NULL,
+            right_arm_cm REAL NULL,
+            forearm_cm REAL NULL,
+            thigh_cm REAL NULL,
+            calf_cm REAL NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            CHECK (weight_kg IS NULL OR weight_kg > 0),
+            CHECK (body_fat_percent IS NULL OR body_fat_percent BETWEEN 0 AND 100),
+            CHECK (neck_cm IS NULL OR neck_cm > 0),
+            CHECK (chest_cm IS NULL OR chest_cm > 0),
+            CHECK (waist_cm IS NULL OR waist_cm > 0),
+            CHECK (hips_cm IS NULL OR hips_cm > 0),
+            CHECK (left_arm_cm IS NULL OR left_arm_cm > 0),
+            CHECK (right_arm_cm IS NULL OR right_arm_cm > 0),
+            CHECK (forearm_cm IS NULL OR forearm_cm > 0),
+            CHECK (thigh_cm IS NULL OR thigh_cm > 0),
+            CHECK (calf_cm IS NULL OR calf_cm > 0)
+          );
+          CREATE TABLE skill_goals (
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            target_date INTEGER NULL,
+            status TEXT NOT NULL DEFAULT 'notStarted',
+            created_at INTEGER NOT NULL
+          );
+        ''');
+      raw.execute('INSERT INTO settings (id) VALUES (1)');
+      raw.execute('INSERT INTO goals (id) VALUES (1)');
+      raw.execute('''
+          INSERT INTO sessions
+            (date, discipline, gi_flag, rounds_planned, duration, s_rpe, partner_count, notes, mat_time, load_score)
+          VALUES
+            (${DateTime(2026, 1, 1).millisecondsSinceEpoch}, 'bjj', 0, 5, 1800, 7, 2, 'pre-v4-migration session', 1200, 84)
+        ''');
+      raw.execute('''
+          INSERT INTO skill_goals (name, notes, status, created_at)
+          VALUES ('Perfect my roundhouse kick', '', 'inProgress', ${DateTime(2026, 3, 1).millisecondsSinceEpoch})
+        ''');
+      raw.execute('PRAGMA user_version = 3');
+      raw.dispose();
+
+      final migrated = MettleDatabase(NativeDatabase(File(path)));
+      addTearDown(migrated.close);
+
+      final sessions = await migrated.sessionDao.allSessions();
+      expect(sessions, hasLength(1));
+      expect(
+        sessions.single.notes,
+        'pre-v4-migration session',
+        reason: 'a real user\'s existing log must survive the v4 upgrade',
+      );
+      // A discipline written under the old textEnum column must still
+      // decode: the v4 column is plain text now, so this is really just
+      // confirming the stored string round-trips unchanged.
+      expect(sessions.single.discipline, 'bjj');
+
+      final skillGoalRows = await migrated.skillGoalDao.allGoals();
+      expect(
+        skillGoalRows.map((g) => g.name),
+        contains('Perfect my roundhouse kick'),
+        reason: 'v3 data must not be touched by a table-only v4 migration',
+      );
+
+      // The new table must exist and be usable, not merely present.
+      expect(await migrated.customDisciplineDao.allDisciplines(), isEmpty);
+      await migrated.customDisciplineDao.addDiscipline('Kickboxing');
+      final customDisciplines = await migrated.customDisciplineDao
+          .allDisciplines();
+      expect(customDisciplines.map((d) => d.name), ['Kickboxing']);
+    });
   });
 
   group('RULE 1 — deleting a recording never deletes its session', () {
@@ -814,7 +1039,7 @@ void main() {
         SessionRow(
           id: 1,
           date: DateTime.utc(2026, 9, 18, 19, 30),
-          discipline: Discipline.muayThai,
+          discipline: Discipline.muayThai.name,
           giFlag: false,
           roundsPlanned: 5,
           duration: 3600,

@@ -67,7 +67,7 @@ class _UploadFootageSheet extends ConsumerStatefulWidget {
 }
 
 class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
-  Discipline _discipline = Discipline.values.first;
+  String _discipline = Discipline.values.first.name;
   DateTime _date = DateTime.now();
   bool _saving = false;
   String? _error;
@@ -228,13 +228,25 @@ class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: Discipline.values.map((d) {
-              return ChoiceChip(
-                label: Text(disciplineLabel(d)),
-                selected: _discipline == d,
-                onSelected: (_) => setState(() => _discipline = d),
-              );
-            }).toList(),
+            children: [
+              ...Discipline.values.map((d) {
+                final key = d.name;
+                return ChoiceChip(
+                  label: Text(disciplineLabel(d)),
+                  selected: _discipline == key,
+                  onSelected: (_) => setState(() => _discipline = key),
+                );
+              }),
+              ...(ref.watch(allCustomDisciplinesStreamProvider).valueOrNull ??
+                      const [])
+                  .map(
+                    (c) => ChoiceChip(
+                      label: Text(c.name),
+                      selected: _discipline == c.name,
+                      onSelected: (_) => setState(() => _discipline = c.name),
+                    ),
+                  ),
+            ],
           ),
           const SizedBox(height: 20),
           const Text(

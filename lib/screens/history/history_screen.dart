@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabelForKey;
 import '../../widgets/stat_tile.dart';
 import 'session_detail_screen.dart';
 
@@ -175,7 +175,7 @@ class _SessionRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border(
             left: BorderSide(
-              color: colorForDiscipline(session.discipline),
+              color: colorForDisciplineKey(session.discipline),
               width: 3,
             ),
           ),
@@ -206,7 +206,7 @@ class _SessionRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    disciplineLabel(session.discipline),
+                    disciplineLabelForKey(session.discipline),
                     style: const TextStyle(
                       color: AppColors.onBackground,
                       fontWeight: FontWeight.w600,

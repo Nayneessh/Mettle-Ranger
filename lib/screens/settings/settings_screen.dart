@@ -13,6 +13,7 @@ import '../../backup/sign_in_sheet.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
+import '../../widgets/labels.dart' show disciplineLabel;
 
 const _kExportService = ExportService();
 
@@ -87,6 +88,9 @@ class _SettingsBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final signedIn = ref.watch(signedInStreamProvider).valueOrNull ?? false;
     final skillGoalsAsync = ref.watch(allSkillGoalsStreamProvider);
+    final customDisciplinesAsync = ref.watch(
+      allCustomDisciplinesStreamProvider,
+    );
     final client = ref.watch(backupClientProvider);
 
     return ListView(
@@ -273,6 +277,46 @@ class _SettingsBody extends ConsumerWidget {
                   icon: const Icon(Icons.add),
                   label: const Text('Add a skill goal'),
                 ),
+              ),
+            ],
+          ),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.gold),
+          ),
+          error: (e, _) =>
+              Text('$e', style: const TextStyle(color: AppColors.critical)),
+        ),
+        const SizedBox(height: 24),
+        const _SectionLabel('Disciplines'),
+        const SizedBox(height: 4),
+        const Text(
+          'Train something not listed yet — kickboxing, aikido, wushu, '
+          'whatever it is. Add it here and it shows up everywhere a '
+          'discipline is picked.',
+          style: TextStyle(
+            color: AppColors.onSurfaceFaint,
+            fontSize: 12,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: 10),
+        customDisciplinesAsync.when(
+          data: (customList) => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ...customList.map(
+                (d) => InputChip(
+                  label: Text(d.name),
+                  onDeleted: () => ref
+                      .read(customDisciplineDaoProvider)
+                      .deleteDiscipline(d.id),
+                ),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.add, size: 18),
+                label: const Text('Add discipline'),
+                onPressed: () => _showAddDisciplineDialog(context, ref),
               ),
             ],
           ),
@@ -656,6 +700,67 @@ class _SettingsBody extends ConsumerWidget {
               status: status,
             ),
           );
+    }
+  }
+
+  Future<void> _showAddDisciplineDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final controller = TextEditingController();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('New discipline'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.onBackground),
+          decoration: const InputDecoration(hintText: 'e.g. "Kickboxing"'),
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true || !context.mounted) return;
+    final name = controller.text.trim();
+    if (name.isEmpty) return;
+
+    // A custom discipline is stored as its own name (see
+    // `Sessions.discipline`'s doc comment), so a name that matches a
+    // built-in's key or label would be indistinguishable from that
+    // built-in everywhere the key is resolved back to a label/color.
+    final collidesWithBuiltin = Discipline.values.any(
+      (d) =>
+          d.name.toLowerCase() == name.toLowerCase() ||
+          disciplineLabel(d).toLowerCase() == name.toLowerCase(),
+    );
+    if (collidesWithBuiltin) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('"$name" is already built in.')));
+      return;
+    }
+
+    try {
+      await ref.read(customDisciplineDaoProvider).addDiscipline(name);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('"$name" already exists.')));
     }
   }
 }

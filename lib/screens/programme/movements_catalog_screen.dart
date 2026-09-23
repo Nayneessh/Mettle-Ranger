@@ -5,7 +5,7 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel, disciplineLabelForKey;
 import 'movement_labels.dart';
 import 'new_movement_screen.dart';
 
@@ -24,7 +24,7 @@ class MovementsCatalogScreen extends ConsumerStatefulWidget {
 
 class _MovementsCatalogScreenState
     extends ConsumerState<MovementsCatalogScreen> {
-  Discipline? _filter;
+  String? _filter;
 
   Future<void> _addMovement() async {
     await Navigator.of(
@@ -90,16 +90,31 @@ class _MovementsCatalogScreenState
                       onTap: () => setState(() => _filter = null),
                     ),
                     const SizedBox(width: 8),
-                    ...Discipline.values.map(
-                      (d) => Padding(
+                    ...Discipline.values.map((d) {
+                      final key = d.name;
+                      return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _FilterChip(
                           label: disciplineLabel(d),
-                          selected: _filter == d,
-                          onTap: () => setState(() => _filter = d),
+                          selected: _filter == key,
+                          onTap: () => setState(() => _filter = key),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
+                    ...(ref
+                                .watch(allCustomDisciplinesStreamProvider)
+                                .valueOrNull ??
+                            const [])
+                        .map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _FilterChip(
+                              label: c.name,
+                              selected: _filter == c.name,
+                              onTap: () => setState(() => _filter = c.name),
+                            ),
+                          ),
+                        ),
                   ],
                 ),
               ),
@@ -187,7 +202,7 @@ class _MovementTile extends StatelessWidget {
                 Text(
                   [
                     if (movement.discipline != null)
-                      disciplineLabel(movement.discipline!),
+                      disciplineLabelForKey(movement.discipline!),
                     movementCategoryLabel(movement.category),
                   ].join(' · '),
                   style: const TextStyle(

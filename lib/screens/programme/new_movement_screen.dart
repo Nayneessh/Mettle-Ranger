@@ -23,7 +23,7 @@ class NewMovementScreen extends ConsumerStatefulWidget {
 class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
-  Discipline? _discipline;
+  String? _discipline;
   MovementCategory _category = MovementCategory.technique;
   bool _saving = false;
 
@@ -114,13 +114,23 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
                   selected: _discipline == null,
                   onSelected: (_) => setState(() => _discipline = null),
                 ),
-                ...Discipline.values.map(
-                  (d) => ChoiceChip(
+                ...Discipline.values.map((d) {
+                  final key = d.name;
+                  return ChoiceChip(
                     label: Text(disciplineLabel(d)),
-                    selected: _discipline == d,
-                    onSelected: (_) => setState(() => _discipline = d),
-                  ),
-                ),
+                    selected: _discipline == key,
+                    onSelected: (_) => setState(() => _discipline = key),
+                  );
+                }),
+                ...(ref.watch(allCustomDisciplinesStreamProvider).valueOrNull ??
+                        const [])
+                    .map(
+                      (c) => ChoiceChip(
+                        label: Text(c.name),
+                        selected: _discipline == c.name,
+                        onSelected: (_) => setState(() => _discipline = c.name),
+                      ),
+                    ),
               ],
             ),
             const SizedBox(height: 24),
