@@ -35,6 +35,11 @@ dependencies:
   share_plus: ^12.0.2
   wakelock_plus: ^1.4.0
 
+  # --- daily local reminder (spec-beyond addition, user-requested) ---
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

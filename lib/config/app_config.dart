@@ -2,6 +2,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../notifications/daily_reminder_service.dart';
+
 /// Every third-party credential the app can use, and none of them required.
 ///
 /// Spec §6: no Supabase, AdMob or RevenueCat key is ever committed in
@@ -68,6 +70,15 @@ class AppConfig {
     if (revenueCatConfigured) {
       await Purchases.setLogLevel(LogLevel.warn);
       await Purchases.configure(PurchasesConfiguration(revenueCatPublicKey));
+    }
+
+    // Local-only, so unlike Supabase/AdMob/RevenueCat above this needs no
+    // credential to be worth bringing up — every install gets the morning
+    // reminder unless the user turns notifications off for the app in
+    // Android's own system settings.
+    await DailyReminderService.instance.init();
+    if (await DailyReminderService.instance.requestPermission()) {
+      await DailyReminderService.instance.scheduleDaily5am();
     }
   }
 }
