@@ -52,6 +52,27 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Pinned to a committed keystore instead of AGP's implicit
+            // default (`$HOME/.android/debug.keystore`, auto-generated with
+            // a random key the first time it's needed). On a CI runner —
+            // a fresh VM every run, with no persisted `$HOME/.android` — that
+            // default meant every single build got its own throwaway
+            // signing certificate, so Android refused to install any
+            // "update" over whatever build a device already had (silent
+            // cert-mismatch failure). This file, and only this file, signs
+            // every debug/release-shrunk build from here on, so updates
+            // actually install over each other. Not a secret — this is the
+            // whole point of a *debug* keystore, and the password below is
+            // the same publicly documented default AGP itself uses.
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             // Release signing is wired at Sprint 12. The keystore is generated

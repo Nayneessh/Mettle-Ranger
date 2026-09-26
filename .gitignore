@@ -26,6 +26,7 @@ android/app/profile/
 android/app/release/
 **/*.jks
 **/*.keystore
+!android/app/debug.keystore
 
 # --- Secrets (spec §6) ---
 # Signing keystores live in a password manager and reach CI as a secret.
