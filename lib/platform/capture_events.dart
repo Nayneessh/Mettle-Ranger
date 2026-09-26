@@ -79,6 +79,10 @@ sealed class CaptureEvent {
           message: map['message'] as String? ?? 'unknown capture error',
           fatal: map['fatal'] as bool? ?? false,
         );
+      case 'paused':
+        return const CapturePausedEvent();
+      case 'resumed':
+        return const CaptureResumedEvent();
       default:
         return CaptureUnknownEvent(type ?? 'null');
     }
@@ -122,6 +126,17 @@ class CaptureErrorEvent extends CaptureEvent {
   /// A fatal error means the native pipeline has already stopped itself —
   /// the Dart side must not assume recording is still in progress.
   final bool fatal;
+}
+
+/// Confirms the native side actually paused the in-flight segment — the
+/// counterpart to `CaptureController.pauseRecording()`'s return value, for
+/// listeners (e.g. a live status readout) that only see the event stream.
+class CapturePausedEvent extends CaptureEvent {
+  const CapturePausedEvent();
+}
+
+class CaptureResumedEvent extends CaptureEvent {
+  const CaptureResumedEvent();
 }
 
 class CaptureUnknownEvent extends CaptureEvent {

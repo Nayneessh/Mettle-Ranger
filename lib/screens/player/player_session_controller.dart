@@ -53,6 +53,7 @@ class PlayerSessionController extends ChangeNotifier {
   int? recordingId;
   bool recordingActive = false;
   bool startingCapture = false;
+  bool paused = false;
   int usedBytes = 0;
   int freeBytes = 0;
   ThermalLevel thermalLevel = ThermalLevel.none;
@@ -216,6 +217,10 @@ class PlayerSessionController extends ChangeNotifier {
         break; // Segment rows are written once, in bulk, at stopRecording.
       case CaptureSegmentStarted _:
         break;
+      case CapturePausedEvent _:
+        break; // paused/toggle-driven — `paused` is already set by togglePause().
+      case CaptureResumedEvent _:
+        break;
       case final CaptureErrorEvent error:
         captureWarning = error.message;
         if (error.fatal) recordingActive = false;
@@ -223,6 +228,40 @@ class PlayerSessionController extends ChangeNotifier {
         break;
     }
     notifyListeners();
+  }
+
+  /// Pauses (or resumes) the round timer and, when actually recording, the
+  /// native capture in lockstep — so the timer's clock and the recorded
+  /// video's elapsed duration never drift apart. A no-op once the session
+  /// has finished.
+  Future<void> togglePause() async {
+    if (sessionFinished) return;
+    if (!paused) {
+      if (recordingActive) {
+        final ok = await captureController.pauseRecording();
+        if (!ok) return;
+      }
+      timerEngine.pause();
+      paused = true;
+    } else {
+      if (recordingActive) {
+        final ok = await captureController.resumeRecording();
+        if (!ok) return;
+      }
+      timerEngine.resume();
+      paused = false;
+    }
+    notifyListeners();
+  }
+
+  /// Ends the current round or rest right now, instead of waiting for its
+  /// full length — the Player screen's "skip" control. A forward-only
+  /// nudge to the round-timer state, not a rewind: see
+  /// `RoundTimerEngine.skip()`'s own doc comment for why "back" has no
+  /// coherent meaning for a session that is actually recording.
+  void skipRound() {
+    if (sessionFinished) return;
+    timerEngine.skip();
   }
 
   /// The user chose to stop before the last round — see the confirm dialog

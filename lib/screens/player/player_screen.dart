@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show StandardMessageCodec;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -163,7 +164,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Column(
               children: [
                 _StatusHeader(controller: _controller, draft: widget.draft),
+                if (widget.draft.recordEnabled &&
+                    _controller.recordingActive) ...[
+                  const SizedBox(height: 10),
+                  _CameraPreview(paused: _controller.paused),
+                ],
                 ScoreBar(sessionId: widget.sessionId),
+                const SizedBox(height: 8),
+                _PlayerControls(
+                  paused: _controller.paused,
+                  onTogglePause: _controller.togglePause,
+                  onSkip: _controller.skipRound,
+                ),
                 const Spacer(),
                 if (tick != null)
                   RoundClock(tick: tick, totalRounds: widget.draft.roundCount)
@@ -269,6 +281,92 @@ class _StatusHeader extends StatelessWidget {
             ],
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// The live self-view: whatever the recording camera is pointed at, via the
+/// native `PreviewView` hosted through `mettle_ranger/capture_preview`
+/// (see `android/.../capture/CapturePreviewView.kt`). Purely a viewfinder —
+/// it shows the same camera session that's already recording, it doesn't
+/// control it.
+class _CameraPreview extends StatelessWidget {
+  const _CameraPreview({required this.paused});
+
+  final bool paused;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
+        ),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const AndroidView(
+                viewType: 'mettle_ranger/capture_preview',
+                creationParams: null,
+                creationParamsCodec: StandardMessageCodec(),
+              ),
+              if (paused)
+                Container(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'PAUSED',
+                    style: TextStyle(
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pause/resume (both the round timer and, when recording, the actual
+/// capture — see `PlayerSessionController.togglePause`) and skip-round.
+/// "Back" is deliberately not offered here: see
+/// `RoundTimerEngine.skip()`'s doc comment for why rewinding a live,
+/// already-recording session has no coherent meaning.
+class _PlayerControls extends StatelessWidget {
+  const _PlayerControls({
+    required this.paused,
+    required this.onTogglePause,
+    required this.onSkip,
+  });
+
+  final bool paused;
+  final VoidCallback onTogglePause;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton.icon(
+          onPressed: onTogglePause,
+          icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+          label: Text(paused ? 'Resume' : 'Pause'),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: onSkip,
+          icon: const Icon(Icons.skip_next),
+          label: const Text('Skip round'),
+        ),
       ],
     );
   }

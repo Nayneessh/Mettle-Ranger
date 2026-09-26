@@ -1,6 +1,7 @@
 package com.mettleranger.app
 
 import com.mettleranger.app.capture.CaptureChannelHandler
+import com.mettleranger.app.capture.CapturePreviewViewFactory
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -11,6 +12,10 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         captureChannelHandler = CaptureChannelHandler(this)
         captureChannelHandler.attach(flutterEngine)
+        flutterEngine.platformViewsController.registry.registerViewFactory(
+            CapturePreviewViewFactory.VIEW_TYPE,
+            CapturePreviewViewFactory(),
+        )
     }
 
     override fun onRequestPermissionsResult(

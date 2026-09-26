@@ -12,7 +12,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
 import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.PendingRecording
@@ -73,6 +75,7 @@ class CaptureForegroundService : LifecycleService() {
     private var cameraProvider: ProcessCameraProvider? = null
     private var recorder: Recorder? = null
     private var videoCapture: VideoCapture<Recorder>? = null
+    private var preview: Preview? = null
     private var activeRecording: Recording? = null
 
     private var sessionDir: File? = null
@@ -81,6 +84,18 @@ class CaptureForegroundService : LifecycleService() {
     private val finishedSegments = mutableListOf<SegmentResult>()
     private var isStopping = false
     private var startAcknowledged = false
+
+    /** True between a confirmed `pauseRecording()` and the matching
+     * `resumeRecording()`. Guards the rollover timer (below) and lets
+     * `stopRecording()` finalize correctly from a paused state. */
+    private var isPaused = false
+
+    /** Wall-clock deadline (`SystemClock.elapsedRealtime()`) the current
+     * segment's rollover is scheduled for. Recomputed relative to this, not
+     * reissued as a flat 5-minute delay, so a pause doesn't silently gift
+     * the next segment extra recorded time or roll over mid-pause on stale
+     * wall-clock elapsed. */
+    private var segmentRolloverDeadline = 0L
 
     /** Resolved once, the first time this recording confirms it is really
      * writing — either `true` on the first segment's Start event, or
@@ -146,6 +161,7 @@ class CaptureForegroundService : LifecycleService() {
         globalElapsedMsAtSegmentStart = 0L
         finishedSegments.clear()
         isStopping = false
+        isPaused = false
         startAcknowledged = false
         onStartResolved = onStart
 
@@ -158,13 +174,21 @@ class CaptureForegroundService : LifecycleService() {
                     QualitySelector.from(quality, FallbackStrategy.lowerQualityOrHigherThan(quality))
                 val builtRecorder = Recorder.Builder().setQualitySelector(qualitySelector).build()
                 val capture = VideoCapture.withOutput(builtRecorder)
+                val builtPreview = Preview.Builder().build()
 
                 provider.unbindAll()
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, capture)
+                provider.bindToLifecycle(
+                    this,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    builtPreview,
+                    capture,
+                )
 
                 cameraProvider = provider
                 recorder = builtRecorder
                 videoCapture = capture
+                preview = builtPreview
+                CapturePreviewRegistry.publish(builtPreview)
 
                 beginSegment()
             } catch (error: Exception) {
@@ -172,6 +196,38 @@ class CaptureForegroundService : LifecycleService() {
                 resolveStart(false)
             }
         }, mainThreadExecutor)
+    }
+
+    /** Pauses the in-flight segment (CameraX `Recording.pause()`) and the
+     * segment-rollover timer together, so a paused recording neither writes
+     * frames nor gets rolled over by stale wall-clock elapsed while nothing
+     * is being recorded. `onResult(false)` when there is nothing to pause. */
+    fun pauseRecording(onResult: (Boolean) -> Unit) {
+        val recording = activeRecording
+        if (recording == null || isPaused) {
+            onResult(false)
+            return
+        }
+        isPaused = true
+        rolloverHandler.removeCallbacks(rolloverRunnable)
+        recording.pause()
+        onResult(true)
+    }
+
+    /** Resumes a paused segment, rescheduling rollover for whatever time was
+     * actually left in this segment rather than a fresh 5 minutes. */
+    fun resumeRecording(onResult: (Boolean) -> Unit) {
+        val recording = activeRecording
+        if (recording == null || !isPaused) {
+            onResult(false)
+            return
+        }
+        isPaused = false
+        val remaining = (segmentRolloverDeadline - SystemClock.elapsedRealtime())
+            .coerceAtLeast(1_000L)
+        rolloverHandler.postDelayed(rolloverRunnable, remaining)
+        recording.resume()
+        onResult(true)
     }
 
     fun stopRecording(onStopped: (Map<String, Any?>) -> Unit) {
@@ -182,6 +238,7 @@ class CaptureForegroundService : LifecycleService() {
         }
         onStopFinished = onStopped
         isStopping = true
+        isPaused = false
         rolloverHandler.removeCallbacks(rolloverRunnable)
         activeRecording?.stop()
     }
@@ -203,6 +260,7 @@ class CaptureForegroundService : LifecycleService() {
             activeRecording = pending.start(mainThreadExecutor) { event ->
                 handleVideoRecordEvent(event, fileName)
             }
+            segmentRolloverDeadline = SystemClock.elapsedRealtime() + SEGMENT_DURATION_MS
             rolloverHandler.postDelayed(rolloverRunnable, SEGMENT_DURATION_MS)
         } catch (error: Exception) {
             listener?.onEvent(errorEvent("could not start segment $segmentIndex: ${error.message}", fatal = true))
@@ -214,6 +272,9 @@ class CaptureForegroundService : LifecycleService() {
         // Stops the current segment; its Finalize handler starts the next
         // one. A crash between here and the next Start event costs this one
         // segment, never the ones already finalized — RULE 3 of spec §4.
+        // Never reached while paused: pauseRecording() cancels this callback
+        // and resumeRecording() reschedules it, so this fires only against
+        // a segment that is actually still recording.
         activeRecording?.stop()
     }
 
@@ -280,7 +341,13 @@ class CaptureForegroundService : LifecycleService() {
                     beginSegment()
                 }
             }
-            else -> Unit // Pause/Resume: not exposed to Dart — capture never pauses, only rolls over.
+            is VideoRecordEvent.Pause -> {
+                listener?.onEvent(mapOf("type" to "paused"))
+            }
+            is VideoRecordEvent.Resume -> {
+                listener?.onEvent(mapOf("type" to "resumed"))
+            }
+            else -> Unit
         }
     }
 
@@ -307,11 +374,14 @@ class CaptureForegroundService : LifecycleService() {
 
     private fun tearDown() {
         rolloverHandler.removeCallbacks(rolloverRunnable)
+        CapturePreviewRegistry.publish(null)
         cameraProvider?.unbindAll()
         cameraProvider = null
         recorder = null
         videoCapture = null
+        preview = null
         activeRecording = null
+        isPaused = false
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }

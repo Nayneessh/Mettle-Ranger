@@ -223,6 +223,80 @@ void main() {
       expect(result.tick.roundNumber, 4);
       expect(result.tick.elapsedInPhaseMs, 30_000);
     });
+
+    test(
+      'skipCurrentPhase ends a working round early, at the real elapsed time',
+      () {
+        final state = RoundTimerState(
+          const RoundPlan(
+            roundLengthSeconds: 300,
+            restLengthSeconds: 60,
+            roundCount: 3,
+          ),
+        )..start();
+
+        final boundary = state.skipCurrentPhase(90_000);
+
+        expect(boundary, isNotNull);
+        expect(boundary!.roundNumber, 1);
+        expect(boundary.startedAtMs, 0);
+        expect(
+          boundary.endedAtMs,
+          90_000,
+          reason: 'the chapter reflects when it really ended, not the '
+              'nominal 300s round length',
+        );
+        expect(state.phase, TimerPhase.resting);
+      },
+    );
+
+    test('skipCurrentPhase during rest advances the round with no boundary', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 3,
+        ),
+      )..start();
+      state.advanceTo(300_000); // into rest
+
+      final boundary = state.skipCurrentPhase(310_000);
+
+      expect(boundary, isNull, reason: 'rest phases never stamp a chapter');
+      expect(state.phase, TimerPhase.working);
+      expect(state.roundNumber, 2);
+    });
+
+    test('skipCurrentPhase on the last round finishes the session', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 1,
+        ),
+      )..start();
+
+      final boundary = state.skipCurrentPhase(45_000);
+
+      expect(boundary, isNotNull);
+      expect(state.phase, TimerPhase.finished);
+    });
+
+    test('skipCurrentPhase is inert once the timer has finished', () {
+      final state = RoundTimerState(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 0,
+          roundCount: 1,
+        ),
+      )..start();
+      state.advanceTo(300_000);
+
+      final boundary = state.skipCurrentPhase(500_000);
+
+      expect(boundary, isNull);
+      expect(state.phase, TimerPhase.finished);
+    });
   });
 
   group('ChapterStamper — timer events to pending chapters', () {
@@ -429,6 +503,34 @@ void main() {
 
       expect(boundaries.map((b) => b.roundNumber), [1, 2]);
       expect(engine.phase, TimerPhase.finished);
+    });
+
+    test('skip() ends the current round immediately, mid-round', () async {
+      final engine = RoundTimerEngine(
+        const RoundPlan(
+          roundLengthSeconds: 300,
+          restLengthSeconds: 60,
+          roundCount: 2,
+        ),
+        tickEvery: const Duration(milliseconds: 50),
+      );
+      addTearDown(engine.dispose);
+
+      final boundaries = <RoundBoundary>[];
+      final sub = engine.boundaries.listen(boundaries.add);
+      addTearDown(sub.cancel);
+
+      engine.start();
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      engine.skip();
+      // The boundary controller is an ordinary (non-sync) broadcast stream,
+      // so its listener fires on a later microtask, not before `skip()`
+      // returns.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(boundaries, hasLength(1));
+      expect(boundaries.single.roundNumber, 1);
+      expect(engine.phase, TimerPhase.resting);
     });
   });
 

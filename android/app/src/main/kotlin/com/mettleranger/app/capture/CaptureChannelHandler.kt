@@ -77,6 +77,8 @@ class CaptureChannelHandler(private val activity: Activity) :
             "batteryPercent" -> result.success(DeviceStatus.batteryPercent(activity))
             "thermalStatus" -> result.success(DeviceStatus.thermalStatusOrdinal(activity))
             "startRecording" -> startRecording(call, result)
+            "pauseRecording" -> pauseRecording(result)
+            "resumeRecording" -> resumeRecording(result)
             "stopRecording" -> stopRecording(result)
             else -> result.notImplemented()
         }
@@ -111,6 +113,24 @@ class CaptureChannelHandler(private val activity: Activity) :
             service.listener = this
             service.startRecording(sessionDir, quality) { started -> result.success(started) }
         }
+    }
+
+    private fun pauseRecording(result: MethodChannel.Result) {
+        val service = boundService
+        if (service == null) {
+            result.success(false)
+            return
+        }
+        service.pauseRecording { ok -> result.success(ok) }
+    }
+
+    private fun resumeRecording(result: MethodChannel.Result) {
+        val service = boundService
+        if (service == null) {
+            result.success(false)
+            return
+        }
+        service.resumeRecording { ok -> result.success(ok) }
     }
 
     private fun stopRecording(result: MethodChannel.Result) {

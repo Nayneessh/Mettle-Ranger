@@ -109,9 +109,23 @@ class RoundTimerState {
     return (tick: _tickAt(totalElapsedMs), boundaries: crossed);
   }
 
-  List<RoundBoundary> _crossBoundary() {
+  /// Ends the current phase right now, at [nowElapsedMs], instead of
+  /// waiting for its nominal length to elapse — the "skip round" control on
+  /// Player. Returns the boundary crossed, or null when the current phase
+  /// was a rest (rest phases don't stamp a chapter) or the timer had
+  /// already finished. Forward-only by construction: [nowElapsedMs] is
+  /// "the current moment," which by definition cannot un-happen — there is
+  /// no coherent "go back" for a live, already-recording session.
+  RoundBoundary? skipCurrentPhase(int nowElapsedMs) {
+    if (_phase == TimerPhase.finished) return null;
+    final boundaries = _crossBoundary(boundaryEndMs: nowElapsedMs);
+    return boundaries.isEmpty ? null : boundaries.first;
+  }
+
+  List<RoundBoundary> _crossBoundary({int? boundaryEndMs}) {
     final boundaryStartMs = _phaseStartMs;
-    final boundaryEndMs = _phaseStartMs + (_currentPhaseLengthMs() * 1000);
+    final resolvedEndMs =
+        boundaryEndMs ?? _phaseStartMs + (_currentPhaseLengthMs() * 1000);
     final boundaries = <RoundBoundary>[];
 
     if (_phase == TimerPhase.working) {
@@ -119,14 +133,14 @@ class RoundTimerState {
         RoundBoundary(
           roundNumber: _roundNumber,
           startedAtMs: boundaryStartMs,
-          endedAtMs: boundaryEndMs,
+          endedAtMs: resolvedEndMs,
         ),
       );
 
       final isLastRound = _roundNumber >= plan.roundCount;
       if (isLastRound) {
         _phase = TimerPhase.finished;
-        _phaseStartMs = boundaryEndMs;
+        _phaseStartMs = resolvedEndMs;
         return boundaries;
       }
       _phase = plan.restLengthSeconds > 0
@@ -138,7 +152,7 @@ class RoundTimerState {
       _roundNumber++;
       _phase = TimerPhase.working;
     }
-    _phaseStartMs = boundaryEndMs;
+    _phaseStartMs = resolvedEndMs;
     return boundaries;
   }
 
@@ -234,6 +248,28 @@ class RoundTimerEngine {
     _ticker?.cancel();
     _tickController.close();
     _boundaryController.close();
+  }
+
+  /// Ends the current round or rest right now — the Player screen's "skip"
+  /// control. Works whether running or paused (the [Stopwatch] simply isn't
+  /// advancing while paused, so "now" is wherever it was left). A no-op
+  /// once the timer has finished.
+  void skip() {
+    if (_state.phase == TimerPhase.finished) return;
+    final nowElapsedMs = _stopwatch.elapsedMilliseconds;
+    final boundary = _state.skipCurrentPhase(nowElapsedMs);
+    if (boundary != null) _boundaryController.add(boundary);
+
+    final result = _state.advanceTo(nowElapsedMs);
+    for (final crossed in result.boundaries) {
+      _boundaryController.add(crossed);
+    }
+    _tickController.add(result.tick);
+    if (result.tick.phase == TimerPhase.finished) {
+      _stopwatch.stop();
+      _ticker?.cancel();
+      _ticker = null;
+    }
   }
 
   void _onTick() {

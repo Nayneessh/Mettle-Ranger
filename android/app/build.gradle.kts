@@ -95,6 +95,8 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-video:$cameraxVersion")
+    // PreviewView: the self-view on the Player screen while recording.
+    implementation("androidx.camera:camera-view:$cameraxVersion")
 
     // ProcessCameraProvider.getInstance() returns a Guava ListenableFuture.
     // CameraX only pulls in the empty com.google.guava:listenablefuture

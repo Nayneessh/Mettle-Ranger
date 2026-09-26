@@ -95,6 +95,17 @@ class CaptureController {
     return ok ?? false;
   }
 
+  /// Pauses the in-flight segment. Returns false without throwing if there
+  /// is nothing to pause (not recording, or already paused) — the caller
+  /// should leave its own paused state unchanged when this returns false.
+  Future<bool> pauseRecording() async =>
+      (await _methods.invokeMethod<bool>('pauseRecording')) ?? false;
+
+  /// Resumes a paused segment. Same false-without-throwing contract as
+  /// [pauseRecording].
+  Future<bool> resumeRecording() async =>
+      (await _methods.invokeMethod<bool>('resumeRecording')) ?? false;
+
   /// Stops recording, finalizes the in-flight segment, and returns every
   /// segment the session produced — exactly the rows `RecordingDao` needs
   /// via `insertSegments`.
