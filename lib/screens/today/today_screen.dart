@@ -12,6 +12,7 @@ import '../../domain/streak_calculator.dart';
 import '../../providers.dart';
 import '../../widgets/goal_ring.dart';
 import '../../widgets/gradient_button.dart';
+import '../../widgets/lookup_dialogs.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/week_strip.dart';
 import '../history/session_detail_screen.dart';
@@ -204,6 +205,17 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.nightBlueWash,
                           foregroundColor: AppColors.nightBlueStrong,
+                          shape: const CircleBorder(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => addCustomDiscipline(context, ref),
+                        icon: const Icon(Icons.add),
+                        tooltip: 'Add a discipline',
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.goldWash,
+                          foregroundColor: AppColors.gold,
                           shape: const CircleBorder(),
                         ),
                       ),

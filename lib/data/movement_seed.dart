@@ -80,7 +80,7 @@ MovementsCompanion _m(
   return MovementsCompanion.insert(
     name: name,
     discipline: Value(discipline?.name),
-    category: category,
+    category: category.name,
     isCustom: const Value(false),
   );
 }

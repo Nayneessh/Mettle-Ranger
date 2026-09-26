@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
@@ -69,13 +70,35 @@ class _BodyBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        const Text(
-          'Body',
-          style: TextStyle(
-            color: AppColors.onBackground,
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Body',
+                style: TextStyle(
+                  color: AppColors.onBackground,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            if (latest != null)
+              IconButton(
+                onPressed: () {
+                  final lines = [
+                    'My Mettle Ranger check-in — '
+                        '${DateFormat('MMM d, yyyy').format(latest.date)}',
+                    if (latestWeight != null)
+                      'Weight: ${latestWeight.toStringAsFixed(1)} kg',
+                    if (latestBodyFat != null)
+                      'Body fat: ${latestBodyFat.toStringAsFixed(1)}%',
+                  ];
+                  SharePlus.instance.share(ShareParams(text: lines.join('\n')));
+                },
+                icon: const Icon(Icons.share_outlined, color: AppColors.gold),
+                tooltip: 'Share',
+              ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

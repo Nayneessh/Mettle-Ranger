@@ -10,6 +10,7 @@ import '../../domain/enums.dart';
 import '../../providers.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/labels.dart' show disciplineLabel, roundModeLabel;
+import '../../widgets/lookup_dialogs.dart';
 import '../consent/consent_screen.dart';
 import '../player/player_screen.dart';
 import 'session_draft.dart';
@@ -166,6 +167,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     onSelected: (_) => _setDiscipline(c.name),
                   ),
                 ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                  onPressed: () async {
+                    final added = await addCustomDiscipline(context, ref);
+                    if (added != null) _setDiscipline(added);
+                  },
+                ),
               ],
             ),
             // Gi only means anything for BJJ — showing it for every
@@ -185,14 +194,36 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: RoundMode.values.map((m) {
-                final selected = m == draft.roundMode;
-                return ChoiceChip(
-                  label: Text(roundModeLabel(m)),
-                  selected: selected,
-                  onSelected: (_) => setState(() => draft.roundMode = m),
-                );
-              }).toList(),
+              children: [
+                ...RoundMode.values.map((m) {
+                  final key = m.name;
+                  return ChoiceChip(
+                    label: Text(roundModeLabel(m)),
+                    selected: key == draft.roundMode,
+                    onSelected: (_) => setState(() => draft.roundMode = key),
+                  );
+                }),
+                ...(ref.watch(allCustomRoundModesStreamProvider).valueOrNull ??
+                        const [])
+                    .map(
+                      (c) => ChoiceChip(
+                        label: Text(c.name),
+                        selected: c.name == draft.roundMode,
+                        onSelected: (_) =>
+                            setState(() => draft.roundMode = c.name),
+                      ),
+                    ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                  onPressed: () async {
+                    final added = await addCustomRoundMode(context, ref);
+                    if (added != null) {
+                      setState(() => draft.roundMode = added);
+                    }
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             _StepperRow(

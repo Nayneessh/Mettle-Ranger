@@ -393,7 +393,11 @@ void main() {
     test('sparringRatio counts only spar and roll as live', () {
       final ratio = sparringRatio(
         roundDurationsSeconds: [600, 300, 300],
-        roundModes: [RoundMode.drill, RoundMode.roll, RoundMode.spar],
+        roundModes: [
+          RoundMode.drill.name,
+          RoundMode.roll.name,
+          RoundMode.spar.name,
+        ],
       );
       expect(ratio, 0.5);
     });

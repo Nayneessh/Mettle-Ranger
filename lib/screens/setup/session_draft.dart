@@ -37,7 +37,7 @@ class SessionDraft {
       roundLengthSeconds: striking ? 180 : 300,
       restLengthSeconds: 60,
       roundCount: 5,
-      roundMode: striking ? RoundMode.pads : RoundMode.spar,
+      roundMode: striking ? RoundMode.pads.name : RoundMode.spar.name,
       recordEnabled: true,
       quality: quality,
     );
@@ -53,8 +53,10 @@ class SessionDraft {
   /// schema requires one per round and Progress's sparring-ratio chart is
   /// meaningless without it. Applied uniformly to every round in the
   /// session — flagged as an addition beyond the literal spec in the
-  /// project README, not a silent invention.
-  RoundMode roundMode;
+  /// project README, not a silent invention. A stored round-mode key: a
+  /// built-in [RoundMode]'s `.name`, or a custom round type's own name —
+  /// see `Rounds.mode` in data/tables.dart.
+  String roundMode;
 
   bool recordEnabled;
   CaptureQuality quality;

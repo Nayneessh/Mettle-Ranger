@@ -175,9 +175,10 @@ class PlayerSessionController extends ChangeNotifier {
 
   /// The MARK button: one tap, a flagged instant at the current elapsed
   /// time. A no-op when not recording — nothing to flag in an unrecorded
-  /// session.
-  Future<void> markTapped() async {
-    if (!recordingActive || recordingId == null || tick == null) return;
+  /// session. Returns the chapter's offset so the screen can immediately
+  /// offer a note at that same moment — null when nothing was stamped.
+  Future<int?> markTapped() async {
+    if (!recordingActive || recordingId == null || tick == null) return null;
     final pending = _stamper.fromMark(tick!.totalElapsedMs);
     final chapterId = await db.chapterDao.stampChapter(
       recordingId: recordingId!,
@@ -196,6 +197,7 @@ class PlayerSessionController extends ChangeNotifier {
       ),
     );
     notifyListeners();
+    return pending.startOffsetMs;
   }
 
   void _onCaptureEvent(CaptureEvent event) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../ads/ad_slot.dart';
 import '../../ads/banner_ad_widget.dart';
@@ -180,13 +181,32 @@ class _ProgressBodyState extends State<_ProgressBody> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
-        const Text(
-          'Progress',
-          style: TextStyle(
-            color: AppColors.onBackground,
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Progress',
+                style: TextStyle(
+                  color: AppColors.onBackground,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => SharePlus.instance.share(
+                ShareParams(
+                  text:
+                      'My Mettle Ranger progress — ${_rangeLabel(_range)}\n'
+                      '${rangedSessions.length} sessions, $matMinutes min mat time\n'
+                      'Training index: $currentIndex (${delta >= 0 ? '+' : ''}$delta)\n'
+                      'Sparring ratio: ${(sparRatio * 100).round()}%',
+                ),
+              ),
+              icon: const Icon(Icons.share_outlined, color: AppColors.gold),
+              tooltip: 'Share',
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

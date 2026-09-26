@@ -9,7 +9,9 @@ import '../../data/database.dart';
 import '../../platform/capture_providers.dart';
 import '../../providers.dart';
 import '../../widgets/chapter_card.dart';
+import '../../widgets/note_dialogs.dart';
 import '../../widgets/round_clock.dart';
+import '../../widgets/score_bar.dart';
 import '../../widgets/storage_meter.dart';
 import '../recap/recap_screen.dart';
 import '../setup/session_draft.dart';
@@ -91,6 +93,29 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.dispose();
   }
 
+  /// MARK stamps the chapter first — that write must never wait on the
+  /// user finishing a note — then offers a note at that same moment.
+  /// Declining or leaving it blank is fine; MARK's own job is already done
+  /// by the time this dialog even opens.
+  Future<void> _markTapped() async {
+    final offsetMs = await _controller.markTapped();
+    if (offsetMs == null || !mounted) return;
+    final text = await promptForNoteText(context);
+    if (text == null) return;
+    final recordingId = _controller.recordingId;
+    if (recordingId == null) return;
+    await ref
+        .read(recordingNoteDaoProvider)
+        .addNote(
+          RecordingNotesCompanion.insert(
+            recording: recordingId,
+            offsetMs: offsetMs,
+            body: text,
+            createdAt: DateTime.now(),
+          ),
+        );
+  }
+
   Future<void> _confirmEndEarly() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -138,6 +163,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Column(
               children: [
                 _StatusHeader(controller: _controller, draft: widget.draft),
+                ScoreBar(sessionId: widget.sessionId),
                 const Spacer(),
                 if (tick != null)
                   RoundClock(tick: tick, totalRounds: widget.draft.roundCount)
@@ -149,7 +175,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   const SizedBox(height: 20),
                   _MarkButton(
                     enabled: _controller.recordingActive,
-                    onTap: _controller.markTapped,
+                    onTap: _markTapped,
                   ),
                 ],
               ],

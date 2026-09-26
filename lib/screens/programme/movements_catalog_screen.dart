@@ -5,8 +5,8 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel, disciplineLabelForKey;
-import 'movement_labels.dart';
+import '../../widgets/labels.dart'
+    show disciplineLabel, disciplineLabelForKey, movementCategoryLabelForKey;
 import 'new_movement_screen.dart';
 
 /// Movements catalog: every technique, combo, drill, conditioning piece or
@@ -25,6 +25,14 @@ class MovementsCatalogScreen extends ConsumerStatefulWidget {
 class _MovementsCatalogScreenState
     extends ConsumerState<MovementsCatalogScreen> {
   String? _filter;
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _addMovement() async {
     await Navigator.of(
@@ -79,6 +87,32 @@ class _MovementsCatalogScreenState
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: AppColors.onBackground),
+                decoration: InputDecoration(
+                  hintText: 'Search movements',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _query = v.trim()),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: SizedBox(
                 height: 36,
                 child: ListView(
@@ -122,15 +156,16 @@ class _MovementsCatalogScreenState
             Expanded(
               child: movementsAsync.when(
                 data: (movements) {
-                  final filtered = _filter == null
-                      ? movements
-                      : movements
-                            .where(
-                              (m) =>
-                                  m.discipline == _filter ||
-                                  m.discipline == null,
-                            )
-                            .toList();
+                  final filtered = movements.where((m) {
+                    final matchesFilter =
+                        _filter == null ||
+                        m.discipline == _filter ||
+                        m.discipline == null;
+                    final matchesQuery =
+                        _query.isEmpty ||
+                        m.name.toLowerCase().contains(_query.toLowerCase());
+                    return matchesFilter && matchesQuery;
+                  }).toList();
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text(
@@ -203,7 +238,7 @@ class _MovementTile extends StatelessWidget {
                   [
                     if (movement.discipline != null)
                       disciplineLabelForKey(movement.discipline!),
-                    movementCategoryLabel(movement.category),
+                    movementCategoryLabelForKey(movement.category),
                   ].join(' · '),
                   style: const TextStyle(
                     color: AppColors.onSurfaceMuted,

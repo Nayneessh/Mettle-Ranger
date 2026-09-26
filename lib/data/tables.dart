@@ -84,7 +84,15 @@ class Rounds extends Table {
   /// Seconds of work in this round, rest excluded.
   IntColumn get duration => integer()();
 
-  TextColumn get mode => textEnum<RoundMode>()();
+  /// A built-in [RoundMode]'s `.name`, or a user-added [CustomRoundModes]
+  /// row's own name stored directly — same open-key pattern as
+  /// [Sessions.discipline] (see that column's doc comment), for the same
+  /// reason: a fixed list turned out not to be enough. A custom round type
+  /// never counts toward `LoadCalculator.sparringRatio`'s "live" side —
+  /// only the built-in [RoundMode.spar]/[RoundMode.roll] do — since nothing
+  /// here can know whether a user's own label is live contact or drilling,
+  /// and guessing would fabricate a number the app cannot actually derive.
+  TextColumn get mode => text()();
 
   /// Per-round intensity, 1–10. Null when the user did not rate this round.
   IntColumn get intensity => integer().nullable()();
@@ -339,7 +347,10 @@ class Movements extends Table {
   /// custom key as [Sessions.discipline] — see that column.
   TextColumn get discipline => text().nullable()();
 
-  TextColumn get category => textEnum<MovementCategory>()();
+  /// A built-in [MovementCategory]'s `.name`, or a user-added
+  /// [CustomMovementCategories] row's own name stored directly — same
+  /// open-key pattern as [Sessions.discipline].
+  TextColumn get category => text()();
 
   TextColumn get notes => text().withDefault(const Constant(''))();
 
@@ -515,5 +526,96 @@ class CustomDisciplines extends Table {
   @override
   List<Set<Column>> get uniqueKeys => [
     {name},
+  ];
+}
+
+/// A movement category beyond the five built into [MovementCategory] —
+/// same open-key pattern as [CustomDisciplines], applied to
+/// [Movements.category] instead of [Sessions.discipline]. Added in schema
+/// v5, after v4 had already shipped to a real install.
+@DataClassName('CustomMovementCategoryRow')
+class CustomMovementCategories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 60)();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name},
+  ];
+}
+
+/// A round type beyond the seven built into [RoundMode] — same open-key
+/// pattern, applied to [Rounds.mode]. See that column's doc comment for why
+/// a custom round type never counts toward the sparring ratio. Added in
+/// schema v5, after v4 had already shipped to a real install.
+@DataClassName('CustomRoundModeRow')
+class CustomRoundModes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  TextColumn get name => text().withLength(min: 1, max: 60)();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name},
+  ];
+}
+
+/// A note the user typed against a specific moment in a recording — paused
+/// on a clip in Clip Review, or tapped MARK-and-note live on Player — so a
+/// technique or mistake at that exact timestamp doesn't have to be
+/// remembered later. Typed only, no voice recording, per explicit user
+/// request. 1:N from [Recordings], ordered by [offsetMs] for display.
+/// Added in schema v5, after v4 had already shipped to a real install.
+@DataClassName('RecordingNoteRow')
+class RecordingNotes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get recording =>
+      integer().references(Recordings, #id, onDelete: KeyAction.cascade)();
+
+  /// Milliseconds from the start of the recording — the same global
+  /// timeline [Chapters.startOffset] and [Segments.startOffsetMs] use.
+  IntColumn get offsetMs => integer()();
+
+  TextColumn get body => text().withLength(min: 1, max: 2000)();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<String> get customConstraints => const ['CHECK (offset_ms >= 0)'];
+}
+
+/// A scoring tap during or after a session — "give a point" while sparring,
+/// live on Player or after the fact in Clip Review, rather than trying to
+/// remember a bout's score from memory. Tied to the session (not the
+/// recording) so a score survives exactly the way the session itself does
+/// if the footage is later deleted under storage pressure (spec §4 RULE 1)
+/// — the same guarantee, extended to a second kind of log entry.
+@DataClassName('ScoreRow')
+class Scores extends Table {
+  IntColumn get id => integer().autoIncrement()();
+
+  IntColumn get session =>
+      integer().references(Sessions, #id, onDelete: KeyAction.cascade)();
+
+  IntColumn get points => integer()();
+
+  /// Milliseconds elapsed in the session/recording timeline when this point
+  /// was given. Null when scored with no running clock to anchor it to
+  /// (should not normally happen, but nothing here requires a timer tick to
+  /// exist before a point can be logged).
+  IntColumn get atOffsetMs => integer().nullable()();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  List<String> get customConstraints => const [
+    'CHECK (points > 0)',
+    'CHECK (at_offset_ms IS NULL OR at_offset_ms >= 0)',
   ];
 }

@@ -20,11 +20,15 @@ int matTimeFromDurations(Iterable<int> roundDurationsSeconds) =>
 
 /// Share of mat time spent live (spar or roll) vs. drilled, 0–1. Backs the
 /// Progress tab's sparring-to-drilling ratio. A round mode counts as "live"
-/// exactly when it is [RoundMode.spar] or [RoundMode.roll] — pads, bag,
-/// technique, drill and conditioning all count as drilling.
+/// exactly when its key is [RoundMode.spar]'s or [RoundMode.roll]'s `.name`
+/// — pads, bag, technique, drill and conditioning all count as drilling,
+/// and so does every user-added custom round type (`Rounds.mode`'s doc
+/// comment explains why: nothing here can know whether a custom label is
+/// live contact or drilling, so it defaults to the side that doesn't
+/// fabricate a claim about it).
 double sparringRatio({
   required Iterable<int> roundDurationsSeconds,
-  required Iterable<RoundMode> roundModes,
+  required Iterable<String> roundModes,
 }) {
   final durations = roundDurationsSeconds.toList();
   final modes = roundModes.toList();
@@ -35,7 +39,7 @@ double sparringRatio({
 
   var live = 0;
   for (var i = 0; i < durations.length; i++) {
-    if (modes[i] == RoundMode.spar || modes[i] == RoundMode.roll) {
+    if (modes[i] == RoundMode.spar.name || modes[i] == RoundMode.roll.name) {
       live += durations[i];
     }
   }

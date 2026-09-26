@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
@@ -65,13 +66,31 @@ class _HistoryBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
-        const Text(
-          'History',
-          style: TextStyle(
-            color: AppColors.onBackground,
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'History',
+                style: TextStyle(
+                  color: AppColors.onBackground,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => SharePlus.instance.share(
+                ShareParams(
+                  text:
+                      '${sessions.length} session${sessions.length == 1 ? '' : 's'} logged in Mettle Ranger\n'
+                      'Lifetime mat time: $lifetimeMatMinutes min\n'
+                      'Total rounds: $totalRounds',
+                ),
+              ),
+              icon: const Icon(Icons.share_outlined, color: AppColors.gold),
+              tooltip: 'Share',
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

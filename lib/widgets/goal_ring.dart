@@ -27,9 +27,19 @@ class GoalRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clamped = progress.clamp(0.0, 1.0);
-    return SizedBox(
+    return Container(
       width: size,
       height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gold.withValues(alpha: 0.3),
+            blurRadius: 20,
+            spreadRadius: -6,
+          ),
+        ],
+      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -45,12 +55,22 @@ class GoalRing extends StatelessWidget {
           SizedBox(
             width: size,
             height: size,
-            child: CircularProgressIndicator(
-              value: clamped,
-              strokeWidth: strokeWidth,
-              backgroundColor: Colors.transparent,
-              color: AppColors.gold,
-              strokeCap: StrokeCap.round,
+            child: ShaderMask(
+              shaderCallback: (rect) => const SweepGradient(
+                colors: [
+                  AppColors.goldStrong,
+                  AppColors.gold,
+                  AppColors.goldDeep,
+                  AppColors.goldStrong,
+                ],
+              ).createShader(rect),
+              child: CircularProgressIndicator(
+                value: clamped,
+                strokeWidth: strokeWidth,
+                backgroundColor: Colors.transparent,
+                color: Colors.white,
+                strokeCap: StrokeCap.round,
+              ),
             ),
           ),
           Column(

@@ -6,7 +6,7 @@ import '../../app_theme.dart';
 import '../../data/daos/routine_dao.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
-import 'movement_labels.dart';
+import '../../widgets/labels.dart' show movementCategoryLabelForKey;
 
 const _kWeekdayNames = [
   'Monday',
@@ -245,39 +245,99 @@ class _RoutineDayEditorScreenState
   }
 }
 
-class _MovementPickerSheet extends ConsumerWidget {
+class _MovementPickerSheet extends ConsumerStatefulWidget {
   const _MovementPickerSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MovementPickerSheet> createState() =>
+      _MovementPickerSheetState();
+}
+
+class _MovementPickerSheetState extends ConsumerState<_MovementPickerSheet> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final movementsAsync = ref.watch(allMovementsStreamProvider);
     return SafeArea(
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.7,
-        child: movementsAsync.when(
-          data: (movements) => ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: movements.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final m = movements[i];
-              return ListTile(
-                title: Text(
-                  m.name,
-                  style: const TextStyle(color: AppColors.onBackground),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: AppColors.onBackground),
+                decoration: InputDecoration(
+                  hintText: 'Search movements',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: AppColors.surfaceRaised,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
                 ),
-                subtitle: Text(
-                  movementCategoryLabel(m.category),
-                  style: const TextStyle(color: AppColors.onSurfaceMuted),
+                onChanged: (v) => setState(() => _query = v.trim()),
+              ),
+            ),
+            Expanded(
+              child: movementsAsync.when(
+                data: (movements) {
+                  final filtered = _query.isEmpty
+                      ? movements
+                      : movements
+                            .where(
+                              (m) => m.name.toLowerCase().contains(
+                                _query.toLowerCase(),
+                              ),
+                            )
+                            .toList();
+                  if (filtered.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No movements match this search.',
+                        style: TextStyle(color: AppColors.onSurfaceMuted),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final m = filtered[i];
+                      return ListTile(
+                        title: Text(
+                          m.name,
+                          style: const TextStyle(color: AppColors.onBackground),
+                        ),
+                        subtitle: Text(
+                          movementCategoryLabelForKey(m.category),
+                          style: const TextStyle(
+                            color: AppColors.onSurfaceMuted,
+                          ),
+                        ),
+                        onTap: () => Navigator.of(context).pop(m),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.gold),
                 ),
-                onTap: () => Navigator.of(context).pop(m),
-              );
-            },
-          ),
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.gold),
-          ),
-          error: (e, _) => Center(child: Text('$e')),
+                error: (e, _) => Center(child: Text('$e')),
+              ),
+            ),
+          ],
         ),
       ),
     );

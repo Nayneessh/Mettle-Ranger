@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/daos/body_check_in_dao.dart';
 import 'data/daos/chapter_dao.dart';
 import 'data/daos/custom_discipline_dao.dart';
+import 'data/daos/custom_movement_category_dao.dart';
+import 'data/daos/custom_round_mode_dao.dart';
 import 'data/daos/goals_dao.dart';
 import 'data/daos/movement_dao.dart';
 import 'data/daos/recording_dao.dart';
+import 'data/daos/recording_note_dao.dart';
 import 'data/daos/routine_dao.dart';
+import 'data/daos/score_dao.dart';
 import 'data/daos/session_dao.dart';
 import 'data/daos/settings_dao.dart';
 import 'data/daos/skill_goal_dao.dart';
@@ -62,6 +66,22 @@ final skillGoalDaoProvider = Provider<SkillGoalDao>(
 
 final customDisciplineDaoProvider = Provider<CustomDisciplineDao>(
   (ref) => ref.watch(databaseProvider).customDisciplineDao,
+);
+
+final customMovementCategoryDaoProvider = Provider<CustomMovementCategoryDao>(
+  (ref) => ref.watch(databaseProvider).customMovementCategoryDao,
+);
+
+final customRoundModeDaoProvider = Provider<CustomRoundModeDao>(
+  (ref) => ref.watch(databaseProvider).customRoundModeDao,
+);
+
+final recordingNoteDaoProvider = Provider<RecordingNoteDao>(
+  (ref) => ref.watch(databaseProvider).recordingNoteDao,
+);
+
+final scoreDaoProvider = Provider<ScoreDao>(
+  (ref) => ref.watch(databaseProvider).scoreDao,
 );
 
 /// The live settings row. Read this rather than calling `current()` directly
@@ -125,3 +145,30 @@ final allCustomDisciplinesStreamProvider =
     StreamProvider<List<CustomDisciplineRow>>(
       (ref) => ref.watch(customDisciplineDaoProvider).watchAllDisciplines(),
     );
+
+final allCustomMovementCategoriesStreamProvider =
+    StreamProvider<List<CustomMovementCategoryRow>>(
+      (ref) =>
+          ref.watch(customMovementCategoryDaoProvider).watchAllCategories(),
+    );
+
+final allCustomRoundModesStreamProvider =
+    StreamProvider<List<CustomRoundModeRow>>(
+      (ref) => ref.watch(customRoundModeDaoProvider).watchAllRoundModes(),
+    );
+
+/// Notes against one recording, ordered by timestamp — Clip Review's note
+/// list. Keyed by recording id since a screen only ever wants one
+/// recording's notes at a time.
+final recordingNotesStreamProvider =
+    StreamProvider.family<List<RecordingNoteRow>, int>(
+      (ref, recordingId) =>
+          ref.watch(recordingNoteDaoProvider).watchForRecording(recordingId),
+    );
+
+/// A session's scoring log — Player (live) and Clip Review (after the
+/// fact) both watch the same stream for the same session id, so a point
+/// logged in one place shows up immediately in the other.
+final scoresStreamProvider = StreamProvider.family<List<ScoreRow>, int>(
+  (ref, sessionId) => ref.watch(scoreDaoProvider).watchForSession(sessionId),
+);

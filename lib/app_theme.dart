@@ -204,8 +204,18 @@ ThemeData buildAppTheme() {
       backgroundColor: AppColors.surfaceRaised,
       selectedColor: AppColors.goldWash,
       labelStyle: const TextStyle(color: AppColors.onBackground, fontSize: 13),
-      side: const BorderSide(color: AppColors.line),
+      side: WidgetStateBorderSide.resolveWith(
+        (states) => BorderSide(
+          color: states.contains(WidgetState.selected)
+              ? AppColors.goldStrong
+              : AppColors.line,
+        ),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      elevation: 0,
+      pressElevation: 2,
+      selectedShadowColor: AppColors.gold.withValues(alpha: 0.4),
+      showCheckmark: false,
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.gold,

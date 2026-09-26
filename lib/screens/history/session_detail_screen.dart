@@ -6,7 +6,8 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabelForKey, roundModeLabel;
+import '../../widgets/labels.dart'
+    show disciplineLabelForKey, roundModeLabelForKey;
 import '../clip/clip_review_screen.dart';
 
 /// Full detail for one session: everything a tap on a session card used to
@@ -300,7 +301,7 @@ class _RoundTile extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                roundModeLabel(round.mode),
+                roundModeLabelForKey(round.mode),
                 style: const TextStyle(
                   color: AppColors.onBackground,
                   fontWeight: FontWeight.w600,

@@ -4,10 +4,14 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'daos/body_check_in_dao.dart';
 import 'daos/chapter_dao.dart';
 import 'daos/custom_discipline_dao.dart';
+import 'daos/custom_movement_category_dao.dart';
+import 'daos/custom_round_mode_dao.dart';
 import 'daos/goals_dao.dart';
 import 'daos/movement_dao.dart';
 import 'daos/recording_dao.dart';
+import 'daos/recording_note_dao.dart';
 import 'daos/routine_dao.dart';
+import 'daos/score_dao.dart';
 import 'daos/session_dao.dart';
 import 'daos/settings_dao.dart';
 import 'daos/skill_goal_dao.dart';
@@ -40,6 +44,10 @@ const int kBackupSchemaVersion = 1;
     BodyCheckIns,
     SkillGoals,
     CustomDisciplines,
+    CustomMovementCategories,
+    CustomRoundModes,
+    RecordingNotes,
+    Scores,
   ],
   daos: [
     SessionDao,
@@ -52,6 +60,10 @@ const int kBackupSchemaVersion = 1;
     BodyCheckInDao,
     SkillGoalDao,
     CustomDisciplineDao,
+    CustomMovementCategoryDao,
+    CustomRoundModeDao,
+    RecordingNoteDao,
+    ScoreDao,
   ],
 )
 class MettleDatabase extends _$MettleDatabase {
@@ -59,7 +71,7 @@ class MettleDatabase extends _$MettleDatabase {
     : super(executor ?? driftDatabase(name: 'mettle_ranger'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   Future<void> _seedSingletons() async {
     // Settings and Goals are singletons; the rows must exist before anything
@@ -131,6 +143,20 @@ class MettleDatabase extends _$MettleDatabase {
         // DDL here.
         await m.createTable(customDisciplines);
       }
+      if (from < 5) {
+        // v5 (user-requested after using the v4 build): custom movement
+        // categories and round types, on the same open-key pattern as v4's
+        // custom disciplines — Movements.category and Rounds.mode drop
+        // their textEnum converters for plain text, which again changes
+        // nothing on disk (see the v4 branch's note; the same reasoning
+        // applies to both columns). Also two genuinely new features: typed
+        // notes against a moment in a recording, and a session's scoring
+        // log — both pure table creation, nothing to migrate.
+        await m.createTable(customMovementCategories);
+        await m.createTable(customRoundModes);
+        await m.createTable(recordingNotes);
+        await m.createTable(scores);
+      }
     },
     beforeOpen: (details) async {
       // Drift does not enable foreign keys by default, and every guarantee
@@ -158,6 +184,8 @@ class MettleDatabase extends _$MettleDatabase {
       await delete(bodyCheckIns).go();
       await delete(skillGoals).go();
       await delete(customDisciplines).go();
+      await delete(customMovementCategories).go();
+      await delete(customRoundModes).go();
       await delete(settings).go();
       await delete(goals).go();
       await _seedSingletons();

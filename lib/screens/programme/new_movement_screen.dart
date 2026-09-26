@@ -6,8 +6,8 @@ import '../../app_theme.dart';
 import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
-import 'movement_labels.dart';
+import '../../widgets/labels.dart' show disciplineLabel, movementCategoryLabel;
+import '../../widgets/lookup_dialogs.dart';
 
 /// New movement (Winter Arc reference's "New movement" screen, adapted):
 /// name, optional detail, discipline, and category. Anything added here can
@@ -24,7 +24,7 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
   String? _discipline;
-  MovementCategory _category = MovementCategory.technique;
+  String _category = MovementCategory.technique.name;
   bool _saving = false;
 
   @override
@@ -131,6 +131,14 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
                         onSelected: (_) => setState(() => _discipline = c.name),
                       ),
                     ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                  onPressed: () async {
+                    final added = await addCustomDiscipline(context, ref);
+                    if (added != null) setState(() => _discipline = added);
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -139,13 +147,35 @@ class _NewMovementScreenState extends ConsumerState<NewMovementScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: MovementCategory.values.map((c) {
-                return ChoiceChip(
-                  label: Text(movementCategoryLabel(c)),
-                  selected: _category == c,
-                  onSelected: (_) => setState(() => _category = c),
-                );
-              }).toList(),
+              children: [
+                ...MovementCategory.values.map((c) {
+                  final key = c.name;
+                  return ChoiceChip(
+                    label: Text(movementCategoryLabel(c)),
+                    selected: _category == key,
+                    onSelected: (_) => setState(() => _category = key),
+                  );
+                }),
+                ...(ref
+                            .watch(allCustomMovementCategoriesStreamProvider)
+                            .valueOrNull ??
+                        const [])
+                    .map(
+                      (c) => ChoiceChip(
+                        label: Text(c.name),
+                        selected: _category == c.name,
+                        onSelected: (_) => setState(() => _category = c.name),
+                      ),
+                    ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                  onPressed: () async {
+                    final added = await addCustomMovementCategory(context, ref);
+                    if (added != null) setState(() => _category = added);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 32),
             SizedBox(

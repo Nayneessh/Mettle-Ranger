@@ -40,7 +40,7 @@ Map<String, Object?> roundToBackupJson(RoundRow round) => {
   'session': round.session,
   'number': round.number,
   'duration': round.duration,
-  'mode': round.mode.name,
+  'mode': round.mode,
   'intensity': round.intensity,
 };
 
