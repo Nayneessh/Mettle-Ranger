@@ -243,29 +243,33 @@ void main() {
         expect(
           boundary.endedAtMs,
           90_000,
-          reason: 'the chapter reflects when it really ended, not the '
+          reason:
+              'the chapter reflects when it really ended, not the '
               'nominal 300s round length',
         );
         expect(state.phase, TimerPhase.resting);
       },
     );
 
-    test('skipCurrentPhase during rest advances the round with no boundary', () {
-      final state = RoundTimerState(
-        const RoundPlan(
-          roundLengthSeconds: 300,
-          restLengthSeconds: 60,
-          roundCount: 3,
-        ),
-      )..start();
-      state.advanceTo(300_000); // into rest
+    test(
+      'skipCurrentPhase during rest advances the round with no boundary',
+      () {
+        final state = RoundTimerState(
+          const RoundPlan(
+            roundLengthSeconds: 300,
+            restLengthSeconds: 60,
+            roundCount: 3,
+          ),
+        )..start();
+        state.advanceTo(300_000); // into rest
 
-      final boundary = state.skipCurrentPhase(310_000);
+        final boundary = state.skipCurrentPhase(310_000);
 
-      expect(boundary, isNull, reason: 'rest phases never stamp a chapter');
-      expect(state.phase, TimerPhase.working);
-      expect(state.roundNumber, 2);
-    });
+        expect(boundary, isNull, reason: 'rest phases never stamp a chapter');
+        expect(state.phase, TimerPhase.working);
+        expect(state.roundNumber, 2);
+      },
+    );
 
     test('skipCurrentPhase on the last round finishes the session', () {
       final state = RoundTimerState(
