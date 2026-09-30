@@ -297,8 +297,53 @@ class PlayerSessionController extends ChangeNotifier {
     if (sessionFinished) return;
     sessionFinished = true;
     timerEngine.pause();
+    await _trimUnreachedRounds();
     notifyListeners();
     await _finish();
+  }
+
+  /// Setup pre-creates every planned round before a second of the session
+  /// is actually trained, each stamped with its planned length —
+  /// [recalculateLoad] sums exactly those durations. Ending early leaves
+  /// rounds on the table that were never reached at all, and, usually, one
+  /// in progress that was reached but not finished; left alone, both would
+  /// count their full planned length as if they'd actually happened. This
+  /// drops the never-reached ones and rewrites the in-progress one's
+  /// duration down to the real seconds spent in it — resting means the
+  /// round just worked was already completed in full, so there's nothing
+  /// to truncate, only rounds after it to drop.
+  ///
+  /// Also corrects `Sessions.roundsPlanned` to the rounds actually kept —
+  /// every "total rounds" figure in the app (History's lifetime stat,
+  /// Footage's rounds badge) reads that field, not a live count of
+  /// [Rounds] rows, so it has to stay in step with what this just trimmed.
+  Future<void> _trimUnreachedRounds() async {
+    final t = tick;
+    if (t == null) return;
+
+    final partialSeconds = t.phase == TimerPhase.working
+        ? t.elapsedInPhaseMs ~/ 1000
+        : 0;
+    final firstUnreachedRound = partialSeconds > 0
+        ? t.roundNumber + 1
+        : t.roundNumber;
+    final keptRoundCount = firstUnreachedRound - 1;
+
+    if (partialSeconds > 0) {
+      await db.sessionDao.setRoundDuration(
+        sessionId,
+        t.roundNumber,
+        partialSeconds,
+      );
+    }
+    await db.sessionDao.deleteRoundsFrom(sessionId, firstUnreachedRound);
+
+    final session = await db.sessionDao.sessionById(sessionId);
+    if (session != null) {
+      await db.sessionDao.updateSession(
+        session.copyWith(roundsPlanned: keptRoundCount),
+      );
+    }
   }
 
   Future<void> _finish() async {

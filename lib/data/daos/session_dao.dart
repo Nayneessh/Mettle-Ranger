@@ -99,6 +99,35 @@ class SessionDao extends DatabaseAccessor<MettleDatabase>
   Future<bool> updateSession(SessionRow session) =>
       update(sessions).replace(session);
 
+  /// Drops round rows from [fromRoundNumber] onward — a session that ends
+  /// early (Player's "End session early?" dialog). Setup creates every
+  /// planned round upfront, each stamped with its planned length before a
+  /// single second of it is actually trained; a round the timer never
+  /// reached must not silently count its full planned length toward mat
+  /// time as if it had been. Rounds before [fromRoundNumber] were actually
+  /// completed and are untouched.
+  Future<int> deleteRoundsFrom(int sessionId, int fromRoundNumber) =>
+      (delete(rounds)..where(
+            (r) =>
+                r.session.equals(sessionId) &
+                r.number.isBiggerOrEqualValue(fromRoundNumber),
+          ))
+          .go();
+
+  /// Rewrites one round's duration to the real seconds actually trained —
+  /// the round-in-progress counterpart to [deleteRoundsFrom]: ending
+  /// mid-round means that round's *planned* length was never reached
+  /// either, so it gets credited for what was actually done, not the plan.
+  Future<void> setRoundDuration(
+    int sessionId,
+    int roundNumber,
+    int durationSeconds,
+  ) =>
+      (update(rounds)..where(
+            (r) => r.session.equals(sessionId) & r.number.equals(roundNumber),
+          ))
+          .write(RoundsCompanion(duration: Value(durationSeconds)));
+
   /// Recomputes mat time and load score from the session's own rounds.
   ///
   /// Load is sRPE × mat-time in whole minutes — the standard session-RPE

@@ -1249,6 +1249,72 @@ void main() {
       expect(roundsB.single.mode, RoundMode.pads.name);
     });
 
+    test(
+      'deleteRoundsFrom drops only rounds at or after the given number',
+      () async {
+        final sessionId = await insertSession();
+        for (var i = 1; i <= 5; i++) {
+          await db.sessionDao.addRound(
+            RoundsCompanion.insert(
+              session: sessionId,
+              number: i,
+              duration: 180,
+              mode: RoundMode.pads.name,
+            ),
+          );
+        }
+
+        await db.sessionDao.deleteRoundsFrom(sessionId, 3);
+
+        final rounds = await db.sessionDao.roundsForSession(sessionId);
+        expect(rounds.map((r) => r.number), [1, 2]);
+      },
+    );
+
+    test('setRoundDuration rewrites just the one round', () async {
+      final sessionId = await insertSession();
+      await db.sessionDao.addRound(
+        RoundsCompanion.insert(
+          session: sessionId,
+          number: 1,
+          duration: 180,
+          mode: RoundMode.pads.name,
+        ),
+      );
+
+      await db.sessionDao.setRoundDuration(sessionId, 1, 40);
+
+      final round = (await db.sessionDao.roundsForSession(sessionId)).single;
+      expect(round.duration, 40);
+    });
+
+    test('ending a session 40 seconds into round 1 leaves mat time at 40 '
+        'seconds, not the 5 planned rounds\' full length', () async {
+      final sessionId = await insertSession();
+      // Mirrors what Setup does: every planned round created upfront,
+      // each already stamped with its full planned length, before any
+      // of it has actually been trained.
+      for (var i = 1; i <= 5; i++) {
+        await db.sessionDao.addRound(
+          RoundsCompanion.insert(
+            session: sessionId,
+            number: i,
+            duration: 300,
+            mode: RoundMode.pads.name,
+          ),
+        );
+      }
+
+      // The end-early path: round 1 is truncated to what was actually
+      // trained, rounds 2-5 (never reached) are dropped.
+      await db.sessionDao.setRoundDuration(sessionId, 1, 40);
+      await db.sessionDao.deleteRoundsFrom(sessionId, 2);
+      await db.sessionDao.recalculateLoad(sessionId);
+
+      final session = await db.sessionDao.sessionById(sessionId);
+      expect(session!.matTime, 40);
+    });
+
     test('round numbers are unique within a session', () async {
       final sessionId = await insertSession();
       await db.sessionDao.addRound(
