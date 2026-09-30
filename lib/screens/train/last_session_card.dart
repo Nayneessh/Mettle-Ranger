@@ -15,7 +15,6 @@ class LastSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final matMinutes = session.matTime ~/ 60;
     final dateLabel = DateFormat('EEE, MMM d').format(session.date);
 
     return InkWell(
@@ -62,7 +61,7 @@ class LastSessionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$dateLabel · ${matMinutes}m mat time',
+                    dateLabel,
                     style: const TextStyle(
                       color: AppColors.onSurfaceMuted,
                       fontSize: 12.5,

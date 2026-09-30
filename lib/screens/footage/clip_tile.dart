@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../app_theme.dart';
 import '../../data/database.dart';
@@ -13,11 +12,13 @@ class ClipTile extends StatelessWidget {
     required this.recording,
     required this.session,
     required this.onTap,
+    required this.onDelete,
   });
 
   final RecordingRow recording;
   final SessionRow session;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +47,26 @@ class ClipTile extends StatelessWidget {
                   size: 28,
                 ),
                 const Spacer(),
-                if (recording.trimmedFlag)
+                if (recording.trimmedFlag) ...[
                   const Icon(
                     Icons.content_cut,
                     color: AppColors.onSurfaceFaint,
                     size: 14,
                   ),
+                  const SizedBox(width: 6),
+                ],
+                InkWell(
+                  onTap: onDelete,
+                  borderRadius: BorderRadius.circular(14),
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.delete_outline,
+                      color: AppColors.onSurfaceFaint,
+                      size: 18,
+                    ),
+                  ),
+                ),
               ],
             ),
             const Spacer(),
@@ -64,13 +79,15 @@ class ClipTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              DateFormat('MMM d').format(session.date),
-              style: const TextStyle(
-                color: AppColors.onSurfaceMuted,
-                fontSize: 11.5,
+            if (session.roundsPlanned > 0)
+              Text(
+                '${session.roundsPlanned} round'
+                '${session.roundsPlanned == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 11.5,
+                ),
               ),
-            ),
             const SizedBox(height: 6),
             Row(
               children: [

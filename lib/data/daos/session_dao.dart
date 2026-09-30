@@ -78,6 +78,24 @@ class SessionDao extends DatabaseAccessor<MettleDatabase>
 
   Future<int> addRound(RoundsCompanion round) => into(rounds).insert(round);
 
+  /// Changes the round type from [fromRoundNumber] onward — the Player
+  /// screen's "change round type" control (spec-beyond addition: training
+  /// often doesn't go the way it was planned at Setup — pads for round 1,
+  /// then the bag from round 2 on). Rounds before [fromRoundNumber] keep
+  /// whatever mode they were actually trained under; nothing already
+  /// recorded is rewritten.
+  Future<void> updateRoundModeFrom(
+    int sessionId,
+    int fromRoundNumber,
+    String newMode,
+  ) =>
+      (update(rounds)..where(
+            (r) =>
+                r.session.equals(sessionId) &
+                r.number.isBiggerOrEqualValue(fromRoundNumber),
+          ))
+          .write(RoundsCompanion(mode: Value(newMode)));
+
   Future<bool> updateSession(SessionRow session) =>
       update(sessions).replace(session);
 

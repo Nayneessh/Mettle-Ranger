@@ -10,7 +10,6 @@ import '../../data/daos/routine_dao.dart';
 import '../../data/database.dart';
 import '../../domain/streak_calculator.dart';
 import '../../providers.dart';
-import '../../widgets/goal_ring.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/lookup_dialogs.dart';
 import '../../widgets/stat_tile.dart';
@@ -24,8 +23,8 @@ import '../train/backup_prompt_card.dart';
 import '../train/last_session_card.dart';
 
 /// Today — the Train tab's redesign per the Winter Arc reference: a priority
-/// card for what's planned today, a week strip, this-week stats, a weekly
-/// goal ring, the last session, and quick links into Programme/Movements.
+/// card for what's planned today, a week strip, this-week stats, the last
+/// session, and quick links into Programme/Movements.
 ///
 /// Falls back to a plain "ready to train" card whenever there is no active
 /// routine or no plan for today — a routine is optional here, never a
@@ -155,11 +154,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
     );
     final lastSession = widget.sessions.isEmpty ? null : widget.sessions.first;
 
-    final matGoalMinutes = widget.goals.weeklyMatMinutesTarget;
-    final ringProgress = matGoalMinutes == 0
-        ? 0.0
-        : weekMatMinutes / matGoalMinutes;
-
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -276,54 +270,6 @@ class _TodayBodyState extends ConsumerState<_TodayBody> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 24),
-                  const _SectionLabel('The priority'),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.line),
-                    ),
-                    child: Row(
-                      children: [
-                        GoalRing(
-                          progress: ringProgress,
-                          centerValue: '$weekMatMinutes',
-                          centerUnit: 'of $matGoalMinutes min',
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Weekly mat time',
-                                style: TextStyle(
-                                  color: AppColors.onBackground,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                matGoalMinutes == 0
-                                    ? 'Set a weekly target in Settings.'
-                                    : (weekMatMinutes >= matGoalMinutes
-                                          ? 'Goal met for this week.'
-                                          : "${matGoalMinutes - weekMatMinutes} minutes left to hit this week's goal."),
-                                style: const TextStyle(
-                                  color: AppColors.onSurfaceMuted,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: 24),
                   if (widget.sessions.length >= 3) ...[

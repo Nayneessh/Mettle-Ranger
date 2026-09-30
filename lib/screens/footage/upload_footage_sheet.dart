@@ -13,15 +13,21 @@ import '../../data/database.dart';
 import '../../domain/enums.dart';
 import '../../providers.dart';
 import '../../widgets/gradient_button.dart';
-import '../../widgets/labels.dart' show disciplineLabel;
+import '../../widgets/labels.dart' show disciplineLabel, roundModeLabelForKey;
+import '../../widgets/round_mode_picker.dart';
 
 /// Lets the user bring in a video already on their device — filmed with the
 /// stock camera app, downloaded, AirDropped in, whatever — as footage, the
 /// same way an in-app recording would be. Because [Recordings] is always
 /// 1:1 with a [Sessions] row (spec §4), an upload gets its own minimal
 /// session rather than guessing an existing one to attach to; its "Uploaded
-/// footage" note says so plainly, and nothing about mat time or rounds is
-/// fabricated for it.
+/// footage" note says so plainly.
+///
+/// Rounds are asked for too, not just the video — without them, an upload
+/// used to contribute nothing to mat time, load or round counts, silently
+/// undercounting every lifetime/weekly total (spec-beyond fix: this was a
+/// real gap, not a design choice — see the round count/length fields below
+/// and `SessionDao.recalculateLoad`, called once they're saved).
 ///
 /// The picked file is copied into the same app-private
 /// `recordings/<sessionId>/` layout `PlayerSessionController` uses for a
@@ -69,6 +75,9 @@ class _UploadFootageSheet extends ConsumerStatefulWidget {
 class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
   String _discipline = Discipline.values.first.name;
   DateTime _date = DateTime.now();
+  int _roundCount = 1;
+  int _roundLengthSeconds = 180;
+  String _roundMode = RoundMode.technique.name;
   bool _saving = false;
   String? _error;
 
@@ -80,6 +89,15 @@ class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
       lastDate: DateTime.now(),
     );
     if (picked != null) setState(() => _date = picked);
+  }
+
+  Future<void> _pickRoundMode() async {
+    final picked = await showRoundModePicker(
+      context,
+      ref,
+      currentMode: _roundMode,
+    );
+    if (picked != null) setState(() => _roundMode = picked);
   }
 
   Future<void> _save() async {
@@ -100,10 +118,24 @@ class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
         SessionsCompanion.insert(
           date: _date,
           discipline: _discipline,
-          roundsPlanned: 0,
+          roundsPlanned: _roundCount,
           notes: const Value('Uploaded footage'),
         ),
       );
+      for (var i = 1; i <= _roundCount; i++) {
+        await db.sessionDao.addRound(
+          RoundsCompanion.insert(
+            session: sessionId,
+            number: i,
+            duration: _roundLengthSeconds,
+            mode: _roundMode,
+          ),
+        );
+      }
+      // Without this, the rounds just inserted don't reach Sessions.matTime
+      // — the field History/Progress actually sum — so an upload would keep
+      // silently contributing zero to every lifetime/weekly total.
+      await db.sessionDao.recalculateLoad(sessionId);
 
       final base = await getApplicationSupportDirectory();
       final dir = Directory(p.join(base.path, 'recordings', '$sessionId'));
@@ -267,6 +299,64 @@ class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
               '${_date.day.toString().padLeft(2, '0')}',
             ),
           ),
+          const SizedBox(height: 20),
+          const Text(
+            'ROUNDS DONE',
+            style: TextStyle(
+              color: AppColors.onSurfaceMuted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'So this counts toward mat time and rounds the same way a '
+            'recorded session does.',
+            style: TextStyle(color: AppColors.onSurfaceFaint, fontSize: 11.5),
+          ),
+          const SizedBox(height: 10),
+          _UploadStepperRow(
+            label: 'Rounds',
+            valueLabel: '$_roundCount',
+            onDecrement: () =>
+                setState(() => _roundCount = (_roundCount - 1).clamp(1, 20)),
+            onIncrement: () =>
+                setState(() => _roundCount = (_roundCount + 1).clamp(1, 20)),
+          ),
+          const SizedBox(height: 10),
+          _UploadStepperRow(
+            label: 'Round length',
+            valueLabel:
+                '${_roundLengthSeconds ~/ 60}:'
+                '${(_roundLengthSeconds % 60).toString().padLeft(2, '0')}',
+            onDecrement: () => setState(
+              () => _roundLengthSeconds = (_roundLengthSeconds - 30).clamp(
+                30,
+                1800,
+              ),
+            ),
+            onIncrement: () => setState(
+              () => _roundLengthSeconds = (_roundLengthSeconds + 30).clamp(
+                30,
+                1800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Text(
+                'Round type',
+                style: TextStyle(color: AppColors.onBackground, fontSize: 15),
+              ),
+              const Spacer(),
+              OutlinedButton(
+                onPressed: _pickRoundMode,
+                child: Text(roundModeLabelForKey(_roundMode)),
+              ),
+            ],
+          ),
           if (_error != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -289,6 +379,68 @@ class _UploadFootageSheetState extends ConsumerState<_UploadFootageSheet> {
                 : const Text('ADD FOOTAGE', style: TextStyle(fontSize: 16)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _UploadStepperRow extends StatelessWidget {
+  const _UploadStepperRow({
+    required this.label,
+    required this.valueLabel,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final String label;
+  final String valueLabel;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.onBackground, fontSize: 15),
+        ),
+        const Spacer(),
+        _UploadRoundIconButton(icon: Icons.remove, onTap: onDecrement),
+        SizedBox(
+          width: 56,
+          child: Text(
+            valueLabel,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.numeral(fontSize: 18),
+          ),
+        ),
+        _UploadRoundIconButton(icon: Icons.add, onTap: onIncrement),
+      ],
+    );
+  }
+}
+
+class _UploadRoundIconButton extends StatelessWidget {
+  const _UploadRoundIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceRaised,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 16, color: AppColors.onBackground),
       ),
     );
   }

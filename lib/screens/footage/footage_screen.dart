@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../ads/ad_slot.dart';
 import '../../ads/banner_ad_widget.dart';
@@ -13,6 +14,7 @@ import '../../widgets/storage_meter.dart';
 import '../clip/clip_review_screen.dart';
 import '../../widgets/labels.dart' show disciplineLabel;
 import 'clip_tile.dart';
+import 'delete_footage.dart';
 import 'upload_footage_sheet.dart';
 
 /// Footage (spec §2, screen 5): clip grid, persistent storage meter,
@@ -119,7 +121,7 @@ class _FootageScreenState extends ConsumerState<FootageScreen> {
           Expanded(
             child: recordingsAsync.when(
               data: (recordings) => sessionsAsync.when(
-                data: (sessions) => _Grid(
+                data: (sessions) => _DateGroupedList(
                   recordings: recordings,
                   sessions: sessions,
                   filter: _filter,
@@ -163,8 +165,13 @@ class _FootageScreenState extends ConsumerState<FootageScreen> {
   }
 }
 
-class _Grid extends StatelessWidget {
-  const _Grid({
+typedef _FootageItem = ({RecordingRow recording, SessionRow session});
+
+/// Groups Footage cards by the session's calendar date, newest day first —
+/// "today: 3 rounds of punching bag" at a glance, rather than one undated
+/// grid a user has to guess their way through.
+class _DateGroupedList extends ConsumerWidget {
+  const _DateGroupedList({
     required this.recordings,
     required this.sessions,
     required this.filter,
@@ -175,12 +182,13 @@ class _Grid extends StatelessWidget {
   final String? filter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final sessionsById = {for (final s in sessions) s.id: s};
     final items = recordings
         .map((r) => (recording: r, session: sessionsById[r.session]))
         .where((pair) => pair.session != null)
-        .where((pair) => filter == null || pair.session!.discipline == filter)
+        .map((pair) => (recording: pair.recording, session: pair.session!))
+        .where((pair) => filter == null || pair.session.discipline == filter)
         .toList();
 
     if (items.isEmpty) {
@@ -197,31 +205,78 @@ class _Grid extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
+    final byDate = <DateTime, List<_FootageItem>>{};
+    for (final item in items) {
+      final day = DateTime(
+        item.session.date.year,
+        item.session.date.month,
+        item.session.date.day,
+      );
+      byDate.putIfAbsent(day, () => []).add(item);
+    }
+    final days = byDate.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.92,
-      ),
-      itemCount: items.length,
+      itemCount: days.length,
       itemBuilder: (context, i) {
-        final item = items[i];
-        return ClipTile(
-          recording: item.recording,
-          session: item.session!,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    ClipReviewScreen(recordingId: item.recording.id),
+        final day = days[i];
+        final dayItems = byDate[day]!;
+        return Padding(
+          padding: EdgeInsets.only(bottom: i == days.length - 1 ? 0 : 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _dateHeading(day),
+                style: const TextStyle(
+                  color: AppColors.onSurfaceMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
               ),
-            );
-          },
+              const SizedBox(height: 10),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.92,
+                ),
+                itemCount: dayItems.length,
+                itemBuilder: (context, j) {
+                  final item = dayItems[j];
+                  return ClipTile(
+                    recording: item.recording,
+                    session: item.session,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ClipReviewScreen(recordingId: item.recording.id),
+                      ),
+                    ),
+                    onDelete: () =>
+                        confirmAndDeleteRecording(context, ref, item.recording),
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
+  }
+
+  String _dateHeading(DateTime day) {
+    final today = DateTime.now();
+    final todayMidnight = DateTime(today.year, today.month, today.day);
+    final diff = todayMidnight.difference(day).inDays;
+    if (diff == 0) return 'TODAY · ${DateFormat('MMM d').format(day)}';
+    if (diff == 1) return 'YESTERDAY · ${DateFormat('MMM d').format(day)}';
+    return DateFormat('EEEE · MMM d').format(day).toUpperCase();
   }
 }
 

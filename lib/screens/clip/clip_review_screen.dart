@@ -240,19 +240,27 @@ class _ClipReviewScreenState extends ConsumerState<ClipReviewScreen> {
     if (mounted) setState(() => _tab = _ClipReviewTab.notes);
   }
 
-  /// Hands the recording's segment files to the OS share sheet — the
-  /// standard, honest way to "post to Instagram/WhatsApp/Facebook": this
-  /// app has no Meta developer credentials to post directly, but the share
-  /// sheet lets the user pick any of those apps themselves. Most sessions
-  /// are one segment, which every receiving app treats as a single video;
-  /// multiple segments still share fine as multiple attachments.
+  /// Hands whichever segment file is currently loaded to the OS share
+  /// sheet — the standard, honest way to "post to
+  /// Instagram/WhatsApp/Facebook": this app has no Meta developer
+  /// credentials to post directly, but the share sheet lets the user pick
+  /// any of those apps themselves.
+  ///
+  /// Deliberately just the one file the user is actually looking at, not
+  /// every segment the whole recording happens to be split into — a
+  /// session that ran past the 5-minute rollover has several segment files
+  /// (spec §4 RULE 3, purely for crash-resilience, unrelated to round
+  /// boundaries) that have nothing to do with what "share this clip" means
+  /// to someone reviewing one round. Sharing all of them at once produced
+  /// exactly that confusion in practice: a share sheet full of files with
+  /// no visible reason why, for what read as "just one video" in Footage.
   Future<void> _share() async {
     final recording = _recording;
-    if (recording == null || _segments.isEmpty) return;
-    final files = _segments
-        .map((s) => XFile(p.join(recording.localPath, s.fileName)))
-        .toList();
-    await SharePlus.instance.share(ShareParams(files: files));
+    final segmentIndex = _loadedSegmentIndex;
+    if (recording == null || segmentIndex == null) return;
+    final segment = _segments.firstWhere((s) => s.index == segmentIndex);
+    final file = XFile(p.join(recording.localPath, segment.fileName));
+    await SharePlus.instance.share(ShareParams(files: [file]));
   }
 
   @override
@@ -274,7 +282,7 @@ class _ClipReviewScreenState extends ConsumerState<ClipReviewScreen> {
             IconButton(
               onPressed: _share,
               icon: const Icon(Icons.share_outlined),
-              tooltip: 'Share this footage',
+              tooltip: 'Share the clip you\'re watching',
             ),
         ],
       ),

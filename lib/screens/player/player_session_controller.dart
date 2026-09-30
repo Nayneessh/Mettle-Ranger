@@ -31,7 +31,9 @@ class PlayerSessionController extends ChangeNotifier {
     required RoundPlan roundPlan,
     required this.recordEnabled,
     required this.quality,
-  }) : timerEngine = RoundTimerEngine(roundPlan);
+    required String initialRoundMode,
+  }) : timerEngine = RoundTimerEngine(roundPlan),
+       currentRoundMode = initialRoundMode;
 
   final MettleDatabase db;
   final CaptureController captureController;
@@ -54,6 +56,11 @@ class PlayerSessionController extends ChangeNotifier {
   bool recordingActive = false;
   bool startingCapture = false;
   bool paused = false;
+
+  /// The round type currently in effect — changeable mid-session via
+  /// [changeRoundModeFrom], separately from [SessionDraft.roundMode], which
+  /// is only ever what Setup was told at the start.
+  String currentRoundMode;
   int usedBytes = 0;
   int freeBytes = 0;
   ThermalLevel thermalLevel = ThermalLevel.none;
@@ -262,6 +269,24 @@ class PlayerSessionController extends ChangeNotifier {
   void skipRound() {
     if (sessionFinished) return;
     timerEngine.skip();
+  }
+
+  /// Changes the round type from the current round onward — training
+  /// doesn't always go the way it was planned at Setup (pads for round 1,
+  /// then the bag from round 2 on). Rounds already trained keep whatever
+  /// mode they actually were; only [tick]'s current round number and later
+  /// ones change. A no-op once the session has finished (nothing left to
+  /// apply it to).
+  Future<void> changeRoundModeFrom(String newMode) async {
+    if (sessionFinished) return;
+    final fromRoundNumber = tick?.roundNumber ?? 1;
+    await db.sessionDao.updateRoundModeFrom(
+      sessionId,
+      fromRoundNumber,
+      newMode,
+    );
+    currentRoundMode = newMode;
+    notifyListeners();
   }
 
   /// The user chose to stop before the last round — see the confirm dialog

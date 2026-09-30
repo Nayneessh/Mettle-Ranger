@@ -1180,6 +1180,75 @@ void main() {
       expect(withRounds!.sparringRatio, 0);
     });
 
+    test(
+      'updateRoundModeFrom changes only the given round number onward',
+      () async {
+        final sessionId = await insertSession();
+        for (var i = 1; i <= 4; i++) {
+          await db.sessionDao.addRound(
+            RoundsCompanion.insert(
+              session: sessionId,
+              number: i,
+              duration: 180,
+              mode: RoundMode.pads.name,
+            ),
+          );
+        }
+
+        await db.sessionDao.updateRoundModeFrom(
+          sessionId,
+          3,
+          RoundMode.bag.name,
+        );
+
+        final rounds = await db.sessionDao.roundsForSession(sessionId);
+        expect(
+          rounds[0].mode,
+          RoundMode.pads.name,
+          reason: 'round 1 untouched',
+        );
+        expect(
+          rounds[1].mode,
+          RoundMode.pads.name,
+          reason: 'round 2 untouched',
+        );
+        expect(rounds[2].mode, RoundMode.bag.name, reason: 'round 3 changed');
+        expect(
+          rounds[3].mode,
+          RoundMode.bag.name,
+          reason: 'round 4 changed too',
+        );
+      },
+    );
+
+    test('updateRoundModeFrom only touches its own session', () async {
+      final sessionA = await insertSession();
+      final sessionB = await insertSession();
+      await db.sessionDao.addRound(
+        RoundsCompanion.insert(
+          session: sessionA,
+          number: 1,
+          duration: 180,
+          mode: RoundMode.pads.name,
+        ),
+      );
+      await db.sessionDao.addRound(
+        RoundsCompanion.insert(
+          session: sessionB,
+          number: 1,
+          duration: 180,
+          mode: RoundMode.pads.name,
+        ),
+      );
+
+      await db.sessionDao.updateRoundModeFrom(sessionA, 1, RoundMode.bag.name);
+
+      final roundsA = await db.sessionDao.roundsForSession(sessionA);
+      final roundsB = await db.sessionDao.roundsForSession(sessionB);
+      expect(roundsA.single.mode, RoundMode.bag.name);
+      expect(roundsB.single.mode, RoundMode.pads.name);
+    });
+
     test('round numbers are unique within a session', () async {
       final sessionId = await insertSession();
       await db.sessionDao.addRound(

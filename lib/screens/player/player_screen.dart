@@ -10,8 +10,10 @@ import '../../data/database.dart';
 import '../../platform/capture_providers.dart';
 import '../../providers.dart';
 import '../../widgets/chapter_card.dart';
+import '../../widgets/labels.dart' show roundModeLabelForKey;
 import '../../widgets/note_dialogs.dart';
 import '../../widgets/round_clock.dart';
+import '../../widgets/round_mode_picker.dart';
 import '../../widgets/score_bar.dart';
 import '../../widgets/storage_meter.dart';
 import '../recap/recap_screen.dart';
@@ -53,6 +55,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       roundPlan: widget.draft.roundPlan,
       recordEnabled: widget.draft.recordEnabled,
       quality: widget.draft.quality,
+      initialRoundMode: widget.draft.roundMode,
     );
     _controller.addListener(_onControllerChanged);
     _controller.start();
@@ -143,6 +146,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
   }
 
+  Future<void> _changeRoundMode() async {
+    final picked = await showRoundModePicker(
+      context,
+      ref,
+      currentMode: _controller.currentRoundMode,
+      title: 'Change round type',
+    );
+    if (picked == null || picked == _controller.currentRoundMode) return;
+    final fromRound = _controller.tick?.roundNumber ?? 1;
+    await _controller.changeRoundModeFrom(picked);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Round type changed to ${roundModeLabelForKey(picked)} — '
+          'applies from round $fromRound onward.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tick = _controller.tick;
@@ -177,6 +201,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   onSkip: _controller.skipRound,
                 ),
                 const Spacer(),
+                _RoundModeChip(
+                  mode: _controller.currentRoundMode,
+                  onTap: _changeRoundMode,
+                ),
+                const SizedBox(height: 12),
                 if (tick != null)
                   RoundClock(tick: tick, totalRounds: widget.draft.roundCount)
                 else
@@ -282,6 +311,24 @@ class _StatusHeader extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Shows the round type currently in effect; tap to change it from the
+/// current round onward — see `PlayerSessionController.changeRoundModeFrom`.
+class _RoundModeChip extends StatelessWidget {
+  const _RoundModeChip({required this.mode, required this.onTap});
+
+  final String mode;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      avatar: const Icon(Icons.swap_horiz, size: 16, color: AppColors.gold),
+      label: Text(roundModeLabelForKey(mode)),
+      onPressed: onTap,
     );
   }
 }
