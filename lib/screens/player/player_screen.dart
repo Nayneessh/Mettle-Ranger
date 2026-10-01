@@ -383,10 +383,13 @@ class _CameraPreview extends StatelessWidget {
 }
 
 /// Pause/resume (both the round timer and, when recording, the actual
-/// capture — see `PlayerSessionController.togglePause`) and skip-round.
-/// "Back" is deliberately not offered here: see
-/// `RoundTimerEngine.skip()`'s doc comment for why rewinding a live,
-/// already-recording session has no coherent meaning.
+/// capture — see `PlayerSessionController.togglePause`) and Stop round,
+/// which ends the current round right now regardless of its planned
+/// length — and, when recording, cuts that round's footage into its own
+/// file (see `PlayerSessionController._onBoundary`). "Back" is
+/// deliberately not offered here: see `RoundTimerEngine.skip()`'s doc
+/// comment for why rewinding a live, already-recording session has no
+/// coherent meaning.
 class _PlayerControls extends StatelessWidget {
   const _PlayerControls({
     required this.paused,
@@ -411,8 +414,8 @@ class _PlayerControls extends StatelessWidget {
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: onSkip,
-          icon: const Icon(Icons.skip_next),
-          label: const Text('Skip round'),
+          icon: const Icon(Icons.stop_circle_outlined),
+          label: const Text('Stop round'),
         ),
       ],
     );

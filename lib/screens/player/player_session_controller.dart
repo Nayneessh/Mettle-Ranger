@@ -155,6 +155,12 @@ class PlayerSessionController extends ChangeNotifier {
 
   Future<void> _onBoundary(RoundBoundary boundary) async {
     if (!recordingActive || recordingId == null) return;
+    // Each round gets its own video file, not just a chapter inside one
+    // continuous recording — user-requested: reviewing footage round by
+    // round beats hunting through one long file. Cutting here covers both
+    // a round ending on its own clock and the "Stop round" control (both
+    // reach this same boundary stream — see RoundTimerEngine.skip()).
+    await captureController.cutSegmentNow();
     final pending = _stamper.fromRoundBoundary(boundary);
     final roundId =
         (boundary.roundNumber >= 1 && boundary.roundNumber <= roundIds.length)
@@ -262,10 +268,13 @@ class PlayerSessionController extends ChangeNotifier {
   }
 
   /// Ends the current round or rest right now, instead of waiting for its
-  /// full length — the Player screen's "skip" control. A forward-only
-  /// nudge to the round-timer state, not a rewind: see
-  /// `RoundTimerEngine.skip()`'s own doc comment for why "back" has no
-  /// coherent meaning for a session that is actually recording.
+  /// full length — the Player screen's "Stop round" control. When
+  /// recording, this is also what cuts the round's footage into its own
+  /// file: the boundary this produces flows into [_onBoundary], same as a
+  /// round ending on its own clock. A forward-only nudge to the
+  /// round-timer state, not a rewind: see `RoundTimerEngine.skip()`'s own
+  /// doc comment for why "back" has no coherent meaning for a session that
+  /// is actually recording.
   void skipRound() {
     if (sessionFinished) return;
     timerEngine.skip();

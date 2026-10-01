@@ -230,6 +230,25 @@ class CaptureForegroundService : LifecycleService() {
         onResult(true)
     }
 
+    /** Ends the in-flight segment right now and starts a new one — the same
+     * mechanism [rolloverSegment] uses on its 5-minute timer, just fired on
+     * demand instead. The Player screen calls this at every round boundary
+     * (natural completion or the "Stop round" control), so each round's
+     * footage lands in its own file rather than all of them landing in
+     * whatever time-sliced segment the 5-minute clock happened to produce —
+     * user-requested, on top of the crash-resilience rollover below, which
+     * still runs independently as a backstop. `onResult(false)` when there
+     * is nothing in flight to cut (not recording, or paused). */
+    fun cutSegmentNow(onResult: (Boolean) -> Unit) {
+        if (activeRecording == null || isPaused) {
+            onResult(false)
+            return
+        }
+        rolloverHandler.removeCallbacks(rolloverRunnable)
+        activeRecording?.stop()
+        onResult(true)
+    }
+
     fun stopRecording(onStopped: (Map<String, Any?>) -> Unit) {
         if (activeRecording == null) {
             onStopped(stopResultPayload())
@@ -429,11 +448,11 @@ class CaptureForegroundService : LifecycleService() {
         private const val NOTIFICATION_CHANNEL_ID = "mettle_ranger_capture"
         private const val NOTIFICATION_ID = 4201
 
-        // Time-based rollover, decoupled from round boundaries on purpose:
-        // crash resilience (spec §4 RULE 3) and chapter placement (RULE 2)
-        // are two different concerns. domain/segment_resolver.dart is what
-        // reconciles a chapter's global offset against wherever a segment
-        // boundary actually landed.
+        // The crash-resilience backstop (spec §4 RULE 3): a segment rolls
+        // over after this long of recorded time regardless of what else is
+        // happening, so a crash never costs more than this much footage.
+        // In normal use, cutSegmentNow() (round boundaries) finalizes a
+        // segment well before this timer would — this is just the ceiling.
         private const val SEGMENT_DURATION_MS = 5 * 60 * 1000L
     }
 }

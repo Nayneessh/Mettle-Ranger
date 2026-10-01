@@ -79,6 +79,7 @@ class CaptureChannelHandler(private val activity: Activity) :
             "startRecording" -> startRecording(call, result)
             "pauseRecording" -> pauseRecording(result)
             "resumeRecording" -> resumeRecording(result)
+            "cutSegmentNow" -> cutSegmentNow(result)
             "stopRecording" -> stopRecording(result)
             else -> result.notImplemented()
         }
@@ -131,6 +132,15 @@ class CaptureChannelHandler(private val activity: Activity) :
             return
         }
         service.resumeRecording { ok -> result.success(ok) }
+    }
+
+    private fun cutSegmentNow(result: MethodChannel.Result) {
+        val service = boundService
+        if (service == null) {
+            result.success(false)
+            return
+        }
+        service.cutSegmentNow { ok -> result.success(ok) }
     }
 
     private fun stopRecording(result: MethodChannel.Result) {

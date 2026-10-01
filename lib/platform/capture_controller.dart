@@ -106,6 +106,15 @@ class CaptureController {
   Future<bool> resumeRecording() async =>
       (await _methods.invokeMethod<bool>('resumeRecording')) ?? false;
 
+  /// Ends the in-flight segment right now and starts a new one, so whatever
+  /// was recorded since the last cut becomes its own, independently
+  /// playable file. Player calls this at every round boundary, so each
+  /// round's footage lands in its own segment rather than wherever the
+  /// 5-minute crash-resilience rollover happened to land. Same
+  /// false-without-throwing contract as [pauseRecording].
+  Future<bool> cutSegmentNow() async =>
+      (await _methods.invokeMethod<bool>('cutSegmentNow')) ?? false;
+
   /// Stops recording, finalizes the in-flight segment, and returns every
   /// segment the session produced — exactly the rows `RecordingDao` needs
   /// via `insertSegments`.
